@@ -95,7 +95,7 @@ module TopologicalInventory
           updated_at[:config] = Time.parse(::Settings.updated_at)
           updated_at[:secret] = Time.parse(secrets["updated_at"])
 
-          logger.info("Updated at: Config load: #{updated_at[:config].to_s}, Secret load: #{updated_at[:secret]}")
+          logger.info("Reloading Sources data => Config [updated_at: #{updated_at[:config].to_s}], Secrets [updated at: #{updated_at[:secret]}]") if updated_at[:config] <= updated_at[:secret]
 
           updated_at[:config] <= updated_at[:secret]
         end
