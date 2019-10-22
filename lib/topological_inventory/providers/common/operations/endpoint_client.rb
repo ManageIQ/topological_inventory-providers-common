@@ -14,29 +14,7 @@ module TopologicalInventory
             self.task_id    = task_id
           end
 
-          def order_service(service_offering, service_plan, order_params)
-            raise NotImplementedError, "#{__method__} must be implemented in a subclass"
-          end
-
-          def source_ref_of(endpoint_svc_instance)
-            raise NotImplementedError, "#{__method__} must be implemented in a subclass"
-          end
-
-          def wait_for_provision_complete(source_id, endpoint_svc_instance, context = {})
-            raise NotImplementedError, "#{__method__} must be implemented in a subclass"
-          end
-
-          def provisioned_successfully?(endpoint_svc_instance)
-            raise NotImplementedError, "#{__method__} must be implemented in a subclass"
-          end
-
-          # Endpoint for conversion of provisioned service's status to
-          # TopologicalInventory Task's status
-          def task_status_for(endpoint_svc_instance)
-            raise NotImplementedError, "#{__method__} must be implemented in a subclass"
-          end
-
-          private
+          protected
 
           attr_accessor :identity, :task_id, :source_id
 
