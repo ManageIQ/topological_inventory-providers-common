@@ -16,6 +16,11 @@ module TopologicalInventory
           end
 
           def lazy_find(collection, reference, ref: :manager_ref)
+            return if reference.kind_of?(String) && reference.blank?
+
+            # Don't make lazy link if all reference values are blank
+            return if reference.kind_of?(Hash) && reference.values.select { |val| val.to_s.present? }.blank?
+
             TopologicalInventoryIngressApiClient::InventoryObjectLazy.new(
               :inventory_collection_name => collection,
               :reference                 => reference,
