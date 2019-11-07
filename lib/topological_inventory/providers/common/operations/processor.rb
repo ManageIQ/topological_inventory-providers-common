@@ -1,4 +1,6 @@
 require "topological_inventory/providers/common/logging"
+require "topological_inventory-api-client"
+require "topological_inventory/providers/common/operations/topology_api_client"
 
 module TopologicalInventory
   module Providers
@@ -25,10 +27,17 @@ module TopologicalInventory
             logger.info("Processing #{model}##{method} [#{params}]...")
 
             impl = operation_model&.new(params, identity)
-            result = impl&.send(method) if impl&.respond_to?(method)
+            if impl&.respond_to?(method)
+              result = impl&.send(method) if impl&.respond_to?(method)
 
-            logger.info("Processing #{model}##{method} [#{params}]...Complete")
-            result
+              logger.info("Processing #{model}##{method} [#{params}]...Complete")
+              result
+            else
+              logger.warn("Processing #{model}##{method} [#{params}]...Not Implemented!")
+              if params['task_id']
+                update_task(params['task_id'], :state => "completed", :status => "error", :context => { :error => "#{model}##{method} Not Implemented"})
+              end
+            end
           end
 
           protected
