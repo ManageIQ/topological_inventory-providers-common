@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
 
   spec.add_runtime_dependency 'config', '~> 1.7', '>= 1.7.2'
   spec.add_runtime_dependency "activesupport", "~> 5.2.2"
-  spec.add_runtime_dependency "manageiq-loggers", "~> 0.3.0"
+  spec.add_runtime_dependency "manageiq-loggers", "~> 0.4.0"
   spec.add_runtime_dependency 'json', '~> 2.1', '>= 2.1.0'
 
   spec.add_development_dependency "bundler", "~> 2.0"
