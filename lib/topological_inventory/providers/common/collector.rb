@@ -10,8 +10,13 @@ module TopologicalInventory
   module Providers
     module Common
       class Collector
-        def initialize(source, default_limit: 1_000, poll_time: 30)
-          self.collector_threads = Concurrent::Map.new
+        def initialize(source, default_limit: 1_000, poll_time: 30, collector_threads: nil)
+          self.collector_threads = collector_threads || Concurrent::FixedThreadPool.new(2)
+
+          self.sync                         = ConditionVariable.new
+          self.threads_sync                 = Mutex.new
+          self.collected_entity_types_count = 0
+
           self.finished          = Concurrent::AtomicBoolean.new(false)
           self.poll_time         = poll_time
           self.limits            = Hash.new(default_limit)
@@ -19,6 +24,7 @@ module TopologicalInventory
           self.source            = source
         end
 
+        # TODO: change for thread pool
         def collect!
           start_collector_threads
 
@@ -43,6 +49,8 @@ module TopologicalInventory
         attr_accessor :collector_threads, :finished, :limits,
                       :poll_time, :queue, :source
 
+        attr_accessor :collected_entity_types_count, :sync, :threads_sync
+
         def finished?
           finished.value
         end
@@ -59,9 +67,7 @@ module TopologicalInventory
 
         def start_collector_threads
           entity_types.each do |entity_type|
-            next if collector_threads[entity_type]&.alive?
-
-            collector_threads[entity_type] = start_collector_thread(entity_type)
+            start_collector_thread(entity_type)
           end
         end
 
@@ -73,8 +79,12 @@ module TopologicalInventory
           connection = connection_for_entity_type(entity_type)
           return if connection.nil?
 
-          Thread.new do
-            collector_thread(connection, entity_type)
+          collector_threads.post do
+            begin
+              collector_thread(connection, entity_type)
+            ensure
+              threads_sync.synchronize { sync.signal }
+            end
           end
         end
 

@@ -6,9 +6,9 @@ module TopologicalInventory
       class CollectorsPool
         SECRET_FILENAME = "credentials".freeze
 
-        def initialize(config_name, metrics, poll_time: 10)
+        def initialize(config_name, metrics, poll_time: 10, thread_pool_size: 10)
           self.collectors        = {}
-          self.collector_threads = {}
+          self.collector_threads = Concurrent::FixedThreadPool.new(thread_pool_size)
           self.config_name       = config_name
           self.metrics           = metrics
           self.poll_time         = poll_time
@@ -35,8 +35,9 @@ module TopologicalInventory
         def stop!
           collectors.each_value(&:stop)
 
+          collector_threads.shutdown
           # Wait for end of collectors to ensure metrics are stopped after them
-          collector_threads.each_value { |thread| thread.kill unless thread.join(30) }
+          collector_threads.wait_for_termination
         end
 
         protected
@@ -73,8 +74,7 @@ module TopologicalInventory
 
             collector = new_collector(source, source_secret)
             collectors[source.source] = collector
-            thread = Thread.new { collector.collect! }
-            collector_threads[source.source] = thread
+            collector_threads.post { collector.collect! }
           end
         end
 
@@ -84,7 +84,6 @@ module TopologicalInventory
 
           (existing_uids - requested_uids).each do |source_uid|
             collector = collectors.delete(source_uid)
-            collector_threads.delete(source_uid)
             collector&.stop
           end
         end
