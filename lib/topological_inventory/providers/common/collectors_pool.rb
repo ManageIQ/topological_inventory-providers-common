@@ -6,14 +6,14 @@ module TopologicalInventory
       class CollectorsPool
         SECRET_FILENAME = "credentials".freeze
 
-        def initialize(config_name, metrics, poll_time: 10, thread_pool_size: 10)
-          self.collectors        = {}
-          self.collector_threads = Concurrent::FixedThreadPool.new(thread_pool_size)
-          self.config_name       = config_name
-          self.metrics           = metrics
-          self.poll_time         = poll_time
-          self.secrets           = nil
-          self.updated_at        = {}
+        def initialize(config_name, metrics, collector_poll_time: 60, thread_pool_size: 2)
+          self.config_name         = config_name
+          self.collector_status    = Concurrent::Map.new
+          self.metrics             = metrics
+          self.collector_poll_time = collector_poll_time
+          self.secrets             = nil
+          self.thread_pool         = Concurrent::FixedThreadPool.new(thread_pool_size)
+          self.updated_at          = {}
         end
 
         def run!
@@ -21,28 +21,25 @@ module TopologicalInventory
             reload_config
             reload_secrets
 
-            # Secret is deployed just after config,
-            # so we should wait for it
-            if secrets_newer_than_config?
-              remove_old_collectors
-              add_new_collectors
-            end
+            # Secret is deployed just after config map, we should wait for it
+            queue_collectors if secrets_newer_than_config?
 
-            sleep(poll_time)
+            sleep(5)
           end
         end
 
         def stop!
           collectors.each_value(&:stop)
 
-          collector_threads.shutdown
+          thread_pool.shutdown
           # Wait for end of collectors to ensure metrics are stopped after them
-          collector_threads.wait_for_termination
+          thread_pool.wait_for_termination
         end
 
         protected
 
-        attr_accessor :collectors, :collector_threads, :config_name, :metrics, :poll_time, :secrets, :updated_at
+        attr_accessor :collectors, :collector_poll_time, :collector_status, :thread_pool, :config_name,
+                      :metrics, :secrets, :updated_at
 
         def reload_config
           config_file = File.join(path_to_config, "#{sanitize_filename(config_name)}.yml")
@@ -64,28 +61,41 @@ module TopologicalInventory
           secrets[source.source]
         end
 
-        def add_new_collectors
+        def queue_collectors
           ::Settings.sources.to_a.each do |source|
-            next unless collectors[source.source].nil?
+            # Skip if collector is running/queued or just finished
+            next if queued_or_updated_recently?(source)
+
+            # Check if secrets for this source are present
             next if (source_secret = secrets_for_source(source)).nil?
 
             # Check if necessary endpoint/auth data are not blank (provider specific)
             next unless source_valid?(source, source_secret)
 
-            collector = new_collector(source, source_secret)
-            collectors[source.source] = collector
-            collector_threads.post { collector.collect! }
+            collector_status[source.source] = {:status => :queued}
+            # Add source to collector's queue
+            thread_pool.post do
+              begin
+                collector = new_collector(source, source_secret)
+                collector.collect!
+              ensure
+                collector_status[source.source] = {:status => :ready, :last_updated_at => Time.now}
+              end
+            end
           end
         end
 
-        def remove_old_collectors
-          requested_uids = ::Settings.sources.to_a.collect(&:source)
-          existing_uids  = collectors.keys
+        def queued_or_updated_recently?(source)
+          return false if collector_status[source.source].nil?
+          return true if collector_status[source.source][:status] == :queued
 
-          (existing_uids - requested_uids).each do |source_uid|
-            collector = collectors.delete(source_uid)
-            collector&.stop
+          if (last_updated_at = collector_status[source.source][:last_updated_at]).nil?
+            # should never happen
+            last_updated_at = Time.now
+            collector_status[source.source] = {:status => :ready, :last_updated_at => last_updated_at}
           end
+
+          last_updated_at > Time.now - collector_poll_time.to_i
         end
 
         def secrets_newer_than_config?

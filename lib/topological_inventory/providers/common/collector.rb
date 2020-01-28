@@ -10,21 +10,18 @@ module TopologicalInventory
   module Providers
     module Common
       class Collector
-        def initialize(source, default_limit: 1_000, poll_time: 30, collector_threads: nil)
-          self.collector_threads = collector_threads || Concurrent::FixedThreadPool.new(2)
-
-          self.sync                         = ConditionVariable.new
-          self.threads_sync                 = Mutex.new
-          self.collected_entity_types_count = 0
-
+        # @param poll_time [Integer] Waiting between collecting loops. Irrelevant for standalone_mode: true
+        # @param standalone_mode [Boolean] T/F if collector is created by collectors_pool
+        def initialize(source, default_limit: 1_000, poll_time: 30, standalone_mode: true)
+          self.collector_threads = Concurrent::Map.new
           self.finished          = Concurrent::AtomicBoolean.new(false)
           self.poll_time         = poll_time
           self.limits            = Hash.new(default_limit)
           self.queue             = Queue.new
           self.source            = source
+          self.standalone_mode   = standalone_mode
         end
 
-        # TODO: change for thread pool
         def collect!
           start_collector_threads
 
@@ -36,7 +33,7 @@ module TopologicalInventory
 
             targeted_refresh(notices) unless notices.empty?
 
-            sleep(poll_time)
+            standalone_mode ? sleep(poll_time) : stop
           end
         end
 
@@ -47,9 +44,7 @@ module TopologicalInventory
         protected
 
         attr_accessor :collector_threads, :finished, :limits,
-                      :poll_time, :queue, :source
-
-        attr_accessor :collected_entity_types_count, :sync, :threads_sync
+                      :poll_time, :queue, :source, :standalone_mode
 
         def finished?
           finished.value
@@ -67,7 +62,9 @@ module TopologicalInventory
 
         def start_collector_threads
           entity_types.each do |entity_type|
-            start_collector_thread(entity_type)
+            next if collector_threads[entity_type]&.alive?
+
+            collector_threads[entity_type] = start_collector_thread(entity_type)
           end
         end
 
@@ -79,12 +76,8 @@ module TopologicalInventory
           connection = connection_for_entity_type(entity_type)
           return if connection.nil?
 
-          collector_threads.post do
-            begin
-              collector_thread(connection, entity_type)
-            ensure
-              threads_sync.synchronize { sync.signal }
-            end
+          Thread.new do
+            collector_thread(connection, entity_type)
           end
         end
 

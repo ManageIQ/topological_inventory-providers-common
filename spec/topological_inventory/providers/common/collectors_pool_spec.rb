@@ -13,7 +13,7 @@ RSpec.describe TopologicalInventory::Providers::Common::CollectorsPool do
     clear_settings
   end
 
-  subject { described_class.new(nil, nil) }
+  subject { described_class.new(nil, nil, :thread_pool_size => 2) }
 
   context "config reload" do
     it "changes settings with different configs" do
@@ -71,6 +71,7 @@ RSpec.describe TopologicalInventory::Providers::Common::CollectorsPool do
 
   context "add or remove collector" do
     before do
+      ::Config.load_and_set_settings('some-value-needed.txt')
       @collector = double("collector")
       allow(subject).to receive(:new_collector).and_return(@collector)
     end
@@ -87,51 +88,12 @@ RSpec.describe TopologicalInventory::Providers::Common::CollectorsPool do
         sources.each do |source|
           stub_settings_merge(:sources => ::Settings.sources.to_a + [source])
 
-          subject.send(:add_new_collectors)
-
-          saved_collectors = subject.send(:collectors)
-          expect(saved_collectors[source[:source]]).to eq(@collector)
-        end
-        # Wait until threads finishes
-        subject.send(:collector_threads).each_value(&:join)
-
-        expect(subject.send(:collectors).keys).to eq(sources.collect { |s| s[:source] })
-        expect(subject.send(:collector_threads).keys).to eq(sources.collect { |s| s[:source] })
-      end
-
-      it "removes existing collectors missing in settings" do
-        mutex = Mutex.new
-        cv = ConditionVariable.new
-        i = 0
-
-        allow(@collector).to receive(:collect!) { mutex.synchronize { i += 1; cv.wait(mutex) } }
-        allow(@collector).to receive(:stop)
-
-        # sources.size - new_sources.size == 2
-        expect(@collector).to receive(:stop).twice
-
-        stub_settings_merge(:sources => sources)
-        subject.send(:add_new_collectors)
-
-        # Wait for all threads are collecting
-        init = false
-        until init
-          mutex.synchronize { init = i == sources.size }
+          subject.send(:queue_collectors)
         end
 
-        # Set new config
-        new_sources = [source1]
-        stub_settings_merge(:sources => new_sources)
-
-        threads = subject.send(:collector_threads).dup
-        subject.send(:remove_old_collectors)
-
-        # Wait for all collecting is complete (rspec can throw error otherwise)
-        mutex.synchronize { cv.broadcast }
-        threads.each_value(&:join)
-
-        expect(subject.send(:collectors).keys).to eq(new_sources.collect { |s| s[:source] })
-        expect(subject.send(:collector_threads).keys).to eq(new_sources.collect { |s| s[:source] })
+        pool = subject.send(:thread_pool)
+        pool.shutdown
+        pool.wait_for_termination
       end
     end
 
@@ -143,6 +105,7 @@ RSpec.describe TopologicalInventory::Providers::Common::CollectorsPool do
           'unknown' => { 'username' => 'admin3', 'password' => 'password3' }
         }
       end
+
       before do
         allow(@collector).to receive(:collect!).and_return(nil)
       end
@@ -158,12 +121,11 @@ RSpec.describe TopologicalInventory::Providers::Common::CollectorsPool do
         # only 2 corresponding
         expect(@collector).to receive(:collect!).exactly(2).times
 
-        subject.send(:add_new_collectors)
-        subject.send(:collector_threads).each_value(&:join)
+        subject.send(:queue_collectors)
 
-        expected_uids = [source1, source2].collect {|s| s[:source]}
-        expect(subject.send(:collectors).keys).to eq(expected_uids)
-        expect(subject.send(:collector_threads).keys).to eq(expected_uids)
+        pool = subject.send(:thread_pool)
+        pool.shutdown
+        pool.wait_for_termination
       end
     end
   end
