@@ -96,21 +96,27 @@ module TopologicalInventory
         def targeted_refresh(notices)
         end
 
+        # @param refresh_state_part_collected_at [Time] when this payload is collected (for [Core]:RefreshStatePart)
+        # @param refresh_state_part_sent_at [Time] when this payload is sent (for [Core]:RefreshStatePart)
         def save_inventory(collections,
                            inventory_name,
                            schema,
                            refresh_state_uuid = nil,
-                           refresh_state_part_uuid = nil)
+                           refresh_state_part_uuid = nil,
+                           refresh_state_part_collected_at = nil,
+                           refresh_state_part_sent_at = Time.now.utc)
           return 0 if collections.empty?
 
           SaveInventory::Saver.new(:client => ingress_api_client, :logger => logger).save(
             :inventory => TopologicalInventoryIngressApiClient::Inventory.new(
-              :name                    => inventory_name,
-              :schema                  => TopologicalInventoryIngressApiClient::Schema.new(:name => schema),
-              :source                  => source,
-              :collections             => collections,
-              :refresh_state_uuid      => refresh_state_uuid,
-              :refresh_state_part_uuid => refresh_state_part_uuid,
+              :name                            => inventory_name,
+              :schema                          => TopologicalInventoryIngressApiClient::Schema.new(:name => schema),
+              :source                          => source,
+              :collections                     => collections,
+              :refresh_state_uuid              => refresh_state_uuid,
+              :refresh_state_part_uuid         => refresh_state_part_uuid,
+              :refresh_state_part_collected_at => refresh_state_part_collected_at,
+              :refresh_state_part_sent_at      => refresh_state_part_sent_at
             )
           )
         rescue => e
@@ -120,22 +126,28 @@ module TopologicalInventory
           raise e
         end
 
+        # @param refresh_state_started_at [Time] when collecting of this entity type is started (for [Core]:RefreshState)
+        # @param refresh_state_sent_at [Time] when this payload is sent (for [Core]:RefreshState)
         def sweep_inventory(inventory_name,
                             schema,
                             refresh_state_uuid,
                             total_parts,
-                            sweep_scope)
+                            sweep_scope,
+                            refresh_state_started_at = nil,
+                            refresh_state_sent_at = Time.now.utc)
           return if !total_parts || sweep_scope.empty?
 
           SaveInventory::Saver.new(:client => ingress_api_client, :logger => logger).save(
             :inventory => TopologicalInventoryIngressApiClient::Inventory.new(
-              :name               => inventory_name,
-              :schema             => TopologicalInventoryIngressApiClient::Schema.new(:name => schema),
-              :source             => source,
-              :collections        => [],
-              :refresh_state_uuid => refresh_state_uuid,
-              :total_parts        => total_parts,
-              :sweep_scope        => sweep_scope,
+              :name                     => inventory_name,
+              :schema                   => TopologicalInventoryIngressApiClient::Schema.new(:name => schema),
+              :source                   => source,
+              :collections              => [],
+              :refresh_state_uuid       => refresh_state_uuid,
+              :total_parts              => total_parts,
+              :sweep_scope              => sweep_scope,
+              :refresh_state_started_at => refresh_state_started_at,
+              :refresh_state_sent_at    => refresh_state_sent_at
             )
           )
         rescue => e
