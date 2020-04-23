@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
 
   spec.summary       = %q{Common classes for topological-inventory collectors/operations}
   spec.description   = %q{Common classes for topological-inventory collectors/operations}
-  spec.homepage      = "https://github.com/slemrmartin/topological_inventory-providers-common"
+  spec.homepage      = "https://github.com/RedHatInsights/topological_inventory-providers-common"
   spec.license       = "Apache-2.0"
 
   # Specify which files should be added to the gem when it is released.
@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency "activesupport", "~> 5.2.2"
   spec.add_runtime_dependency "manageiq-loggers", "~> 0.4.0", ">= 0.4.2"
   spec.add_runtime_dependency 'json', '~> 2.1', '>= 2.1.0'
-  spec.add_runtime_dependency "topological_inventory-api-client", "~> 2.0"
+  spec.add_runtime_dependency "topological_inventory-api-client", "~> 3.0", ">= 3.0.1"
 
   spec.add_development_dependency "bundler", "~> 2.0"
   spec.add_development_dependency "rake", "~> 10.0"
