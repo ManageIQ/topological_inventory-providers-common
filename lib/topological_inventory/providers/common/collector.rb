@@ -12,7 +12,7 @@ module TopologicalInventory
       class Collector
         # @param poll_time [Integer] Waiting between collecting loops. Irrelevant for standalone_mode: true
         # @param standalone_mode [Boolean] T/F if collector is created by collectors_pool
-        def initialize(source, default_limit: 1_000, poll_time: 30, standalone_mode: true)
+        def initialize(source, default_limit: 1_000, poll_time: 30, standalone_mode: true, heartbeat_queue: nil)
           self.collector_threads = Concurrent::Map.new
           self.finished          = Concurrent::AtomicBoolean.new(false)
           self.poll_time         = poll_time
@@ -20,6 +20,7 @@ module TopologicalInventory
           self.queue             = Queue.new
           self.source            = source
           self.standalone_mode   = standalone_mode
+          self.heartbeat_queue   = heartbeat_queue
         end
 
         def collect!
@@ -44,7 +45,8 @@ module TopologicalInventory
         protected
 
         attr_accessor :collector_threads, :finished, :limits,
-                      :poll_time, :queue, :source, :standalone_mode
+                      :poll_time, :queue, :source, :standalone_mode,
+                      :heartbeat_queue
 
         def finished?
           finished.value

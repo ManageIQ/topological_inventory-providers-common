@@ -12,4 +12,5 @@ gem "topological_inventory-ingress_api-client", "~> 1.0"
 group :development, :test do
   gem 'rake', '~> 12.0.0'
   gem 'pry-byebug'
+  gem 'timecop'
 end

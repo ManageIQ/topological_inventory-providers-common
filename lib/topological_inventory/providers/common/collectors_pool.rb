@@ -1,9 +1,12 @@
 require "config"
+require "topological_inventory/providers/common/heartbeat"
 
 module TopologicalInventory
   module Providers
     module Common
       class CollectorsPool
+        include TopologicalInventory::Providers::Common::HeartbeatQueue
+
         SECRET_FILENAME = "credentials".freeze
 
         def initialize(config_name, metrics, collector_poll_time: 60, thread_pool_size: 2)
@@ -14,9 +17,12 @@ module TopologicalInventory
           self.secrets             = nil
           self.thread_pool         = Concurrent::FixedThreadPool.new(thread_pool_size)
           self.updated_at          = {}
+          self.heartbeat_queue     = heartbeat('collector_pool')
         end
 
         def run!
+          heartbeat_queue.run_thread
+
           loop do
             reload_config
             reload_secrets
@@ -29,6 +35,7 @@ module TopologicalInventory
         end
 
         def stop!
+          heartbeat_queue.stop
           collectors.each_value(&:stop)
 
           thread_pool.shutdown
@@ -39,7 +46,7 @@ module TopologicalInventory
         protected
 
         attr_accessor :collectors, :collector_poll_time, :collector_status, :thread_pool, :config_name,
-                      :metrics, :secrets, :updated_at
+                      :metrics, :secrets, :updated_at, :heartbeat_queue
 
         def reload_config
           config_file = File.join(path_to_config, "#{sanitize_filename(config_name)}.yml")
@@ -76,7 +83,7 @@ module TopologicalInventory
             # Add source to collector's queue
             thread_pool.post do
               begin
-                collector = new_collector(source, source_secret)
+                collector = new_collector(source, source_secret, heartbeat_queue)
                 collector.collect!
               ensure
                 collector_status[source.source] = {:status => :ready, :last_updated_at => Time.now}
@@ -95,7 +102,10 @@ module TopologicalInventory
             collector_status[source.source] = {:status => :ready, :last_updated_at => last_updated_at}
           end
 
-          last_updated_at > Time.now - collector_poll_time.to_i
+          updated_recently = last_updated_at > Time.now - collector_poll_time.to_i
+          heartbeat_queue.queue_tick if updated_recently
+
+          updated_recently
         end
 
         def secrets_newer_than_config?
@@ -126,7 +136,7 @@ module TopologicalInventory
           filename.gsub(/[^0-9A-Z\/\-]/i, '_')
         end
 
-        def new_collector(source, source_secret)
+        def new_collector(source, source_secret, heartbeat_queue = nil)
           raise NotImplementedError, "#{__method__} must be implemented in a subclass"
         end
       end
