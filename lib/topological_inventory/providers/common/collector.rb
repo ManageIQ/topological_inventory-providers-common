@@ -168,6 +168,10 @@ module TopologicalInventory
         def ingress_api_client
           TopologicalInventoryIngressApiClient::DefaultApi.new
         end
+
+        def log_external_url(url)
+          logger.info("[EXTERNAL URL] #{url}")
+        end
       end
     end
   end
