@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 Extend logger with common logging phrases #22
+Security update: JSON 2.3, ActiveSupport 5.2.4.3 #23
 
 ## [1.0.1] - 2020-05-06
 ### Changed
