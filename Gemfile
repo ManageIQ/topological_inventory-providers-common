@@ -10,6 +10,6 @@ gem "sources-api-client", "~> 1.0"
 gem "topological_inventory-ingress_api-client", "~> 1.0"
 
 group :development, :test do
-  gem 'rake', '~> 12.0.0'
+  gem 'rake', '>= 12.3.3'
   gem 'pry-byebug'
 end
