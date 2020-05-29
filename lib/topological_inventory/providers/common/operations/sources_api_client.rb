@@ -5,6 +5,8 @@ module TopologicalInventory
     module Common
       module Operations
         class SourcesApiClient < ::SourcesApiClient::ApiClient
+          delegate :update_source, :update_endpoint, :to => :api
+
           INTERNAL_API_PATH = '//internal/v1.0'.freeze
 
           def initialize(identity = nil)
@@ -20,11 +22,7 @@ module TopologicalInventory
 
           def fetch_default_endpoint(source_id)
             endpoints = api.list_source_endpoints(source_id)&.data || []
-            endpoint = endpoints.find(&:default)
-
-            raise "Sources API: Endpoint not found! (source id: #{source_id})" if endpoint.nil?
-
-            endpoint
+            endpoints.find(&:default)
           end
 
           def fetch_authentication(source_id, default_endpoint = nil)

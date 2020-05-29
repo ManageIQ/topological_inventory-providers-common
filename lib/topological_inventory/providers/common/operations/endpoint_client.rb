@@ -46,6 +46,9 @@ module TopologicalInventory
 
           def default_endpoint
             @default_endpoint ||= sources_api.fetch_default_endpoint(source_id)
+            raise "Sources API: Endpoint not found! (source id: #{source_id})" if @default_endpoint.nil?
+
+            @default_endpoint
           end
 
           def authentication
