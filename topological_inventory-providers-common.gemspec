@@ -27,7 +27,9 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'config', '~> 1.7', '>= 1.7.2'
   spec.add_runtime_dependency 'json', '~> 2.3'
   spec.add_runtime_dependency "manageiq-loggers", ">= 0.4.2"
+  spec.add_runtime_dependency "sources-api-client", "~> 3.0"
   spec.add_runtime_dependency "topological_inventory-api-client", "~> 3.0", ">= 3.0.1"
+  spec.add_runtime_dependency "topological_inventory-ingress_api-client", "~> 1.0"
 
   spec.add_development_dependency "bundler", "~> 2.0"
   spec.add_development_dependency "rake", ">= 12.3.3"
