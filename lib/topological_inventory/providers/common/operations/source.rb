@@ -2,6 +2,7 @@ require "active_support/core_ext/numeric/time"
 require "topological_inventory/providers/common/operations/sources_api_client"
 
 module TopologicalInventory
+  module Providers
   module Common
     module Operations
       class Source
@@ -89,7 +90,7 @@ module TopologicalInventory
           source.last_available_at   = check_time if status == STATUS_AVAILABLE
 
           api_client.update_source(source_id, source)
-        rescue SourcesApiClient::ApiError => e
+        rescue ::SourcesApiClient::ApiError => e
           logger.error("Source#availability_check - Failed to update Source id:#{source_id} - #{e.message}")
         end
 
@@ -99,15 +100,15 @@ module TopologicalInventory
             return
           end
 
-          endpoint_update = SourcesApiClient::Endpoint.new
+          endpoint_update = ::SourcesApiClient::Endpoint.new
 
           endpoint_update.availability_status       = status
-          endpoint_update.availability_status_error = error_message # if error_message
+          endpoint_update.availability_status_error = error_message
           endpoint_update.last_checked_at           = check_time
           endpoint_update.last_available_at         = check_time if status == STATUS_AVAILABLE
 
           api_client.update_endpoint(endpoint.id, endpoint_update)
-        rescue SourcesApiClient::ApiError => e
+        rescue ::SourcesApiClient::ApiError => e
           logger.error("Source#availability_check - Failed to update Endpoint(ID: #{endpoint.id}) - #{e.message}")
         end
 
@@ -132,5 +133,6 @@ module TopologicalInventory
         end
       end
     end
+  end
   end
 end

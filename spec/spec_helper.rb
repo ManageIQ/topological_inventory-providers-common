@@ -5,6 +5,7 @@ end
 
 require "bundler/setup"
 require "topological_inventory/providers/common"
+require "webmock/rspec"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
