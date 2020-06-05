@@ -46,7 +46,7 @@ RSpec.describe TopologicalInventory::Providers::Common::Operations::Source do
 
       # PATCH
       source_patch_body   = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
-      endpoint_patch_body = {'availability_status' => described_class::STATUS_AVAILABLE, 'availability_status_error' => nil, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+      endpoint_patch_body = {'availability_status' => described_class::STATUS_AVAILABLE, 'availability_status_error' => '', 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
 
       stub_patch(:source, source_patch_body)
       stub_patch(:endpoint, endpoint_patch_body)

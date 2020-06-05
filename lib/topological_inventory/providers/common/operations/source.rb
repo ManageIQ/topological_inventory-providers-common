@@ -103,7 +103,7 @@ module TopologicalInventory
           endpoint_update = ::SourcesApiClient::Endpoint.new
 
           endpoint_update.availability_status       = status
-          endpoint_update.availability_status_error = error_message
+          endpoint_update.availability_status_error = error_message.to_s
           endpoint_update.last_checked_at           = check_time
           endpoint_update.last_available_at         = check_time if status == STATUS_AVAILABLE
 
