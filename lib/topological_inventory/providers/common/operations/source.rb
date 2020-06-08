@@ -1,3 +1,4 @@
+require "topological_inventory/providers/common/logging"
 require "active_support/core_ext/numeric/time"
 require "topological_inventory/providers/common/operations/sources_api_client"
 
@@ -6,7 +7,7 @@ module TopologicalInventory
   module Common
     module Operations
       class Source
-        # include Logging
+        include Logging
 
         STATUS_AVAILABLE, STATUS_UNAVAILABLE = %w[available unavailable].freeze
 

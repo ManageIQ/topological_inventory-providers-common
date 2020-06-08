@@ -29,10 +29,6 @@ RSpec.describe TopologicalInventory::Providers::Common::Operations::Source do
 
   subject { described_class.new(payload["params"]) }
 
-  before do
-    allow(subject).to receive(:logger).and_return(double(:info => nil, :error => nil))
-  end
-
   context "when not checked recently" do
     before do
       allow(subject).to receive(:checked_recently?).and_return(false)
