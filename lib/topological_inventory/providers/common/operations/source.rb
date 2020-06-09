@@ -16,7 +16,7 @@ module TopologicalInventory
           :endpoint_not_found       => "Endpoint not found in Sources API",
         }.freeze
 
-        LAST_CHECKED_AT_THRESHOLD = 5 # minutes
+        LAST_CHECKED_AT_THRESHOLD = 5.minutes.freeze
 
         attr_accessor :params, :request_context, :source_id
 
@@ -35,7 +35,7 @@ module TopologicalInventory
 
           update_source_and_endpoint(status, error_message)
 
-          logger.info("Source#availability_check completed: Source #{source_id} is #{status}")
+          logger.availability_check("Completed: Source #{source_id} is #{status}")
         end
 
         private
@@ -48,7 +48,7 @@ module TopologicalInventory
           is_missing = false
           required_params.each do |attr|
             if (is_missing = params[attr].blank?)
-              logger.error("Source#availability_check - Missing #{attr} for the availability_check request [Source ID: #{source_id}]")
+              logger.availability_check("Missing #{attr} for the availability_check request [Source ID: #{source_id}]", :error)
               break
             end
           end
@@ -59,8 +59,8 @@ module TopologicalInventory
         def checked_recently?
           return false if endpoint.nil?
 
-          checked_recently = endpoint.last_checked_at.present? && endpoint.last_checked_at >= LAST_CHECKED_AT_THRESHOLD.minutes.ago
-          logger.info("Source#availability_check - Skipping, last check at #{endpoint.last_checked_at} [Source ID: #{source_id}] ") if checked_recently
+          checked_recently = endpoint.last_checked_at.present? && endpoint.last_checked_at >= LAST_CHECKED_AT_THRESHOLD.ago
+          logger.availability_check("Skipping, last check at #{endpoint.last_checked_at} [Source ID: #{source_id}] ") if checked_recently
 
           checked_recently
         end
@@ -69,6 +69,7 @@ module TopologicalInventory
           return [STATUS_UNAVAILABLE, ERROR_MESSAGES[:endpoint_not_found]] unless endpoint
           return [STATUS_UNAVAILABLE, ERROR_MESSAGES[:authentication_not_found]] unless authentication
 
+          check_time
           connection_check
         end
 
@@ -78,7 +79,7 @@ module TopologicalInventory
         end
 
         def update_source_and_endpoint(status, error_message = nil)
-          logger.info("Source#availability_check - updating source [#{source_id}] status [#{status}] message [#{error_message}]")
+          logger.availability_check("Updating source [#{source_id}] status [#{status}] message [#{error_message}]")
 
           update_source(status)
           update_endpoint(status, error_message)
@@ -92,12 +93,12 @@ module TopologicalInventory
 
           api_client.update_source(source_id, source)
         rescue ::SourcesApiClient::ApiError => e
-          logger.error("Source#availability_check - Failed to update Source id:#{source_id} - #{e.message}")
+          logger.availability_check("Failed to update Source id:#{source_id} - #{e.message}", :error)
         end
 
         def update_endpoint(status, error_message)
           if endpoint.nil?
-            logger.error("Source#availability_check - Failed to update Endpoint for Source id:#{source_id}. Endpoint not found")
+            logger.availability_check("Failed to update Endpoint for Source id:#{source_id}. Endpoint not found", :error)
             return
           end
 
@@ -110,7 +111,7 @@ module TopologicalInventory
 
           api_client.update_endpoint(endpoint.id, endpoint_update)
         rescue ::SourcesApiClient::ApiError => e
-          logger.error("Source#availability_check - Failed to update Endpoint(ID: #{endpoint.id}) - #{e.message}")
+          logger.availability_check("Failed to update Endpoint(ID: #{endpoint.id}) - #{e.message}", :error)
         end
 
         def endpoint
