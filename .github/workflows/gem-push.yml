@@ -1,0 +1,23 @@
+name: Release Ruby Gem
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+    - 'lib/topological_inventory/providers/common/version.rb'
+
+jobs:
+  build:
+    name: Build + Publish
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Publish to Rubygems
+      uses: cadwallion/publish-rubygems-action@v1.0
+      env:
+        GITHUB_TOKEN: ${{secrets.GH_API_KEY}}
+        RUBYGEMS_API_KEY: ${{secrets.RUBYGEMS_API_KEY}}
+        RELEASE_COMMAND: rake release
+
