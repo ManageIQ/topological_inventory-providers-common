@@ -21,6 +21,14 @@ module TopologicalInventory
           msg = "[#{status.to_s.upcase}] Sweeping inactive records, :sweep_scope => #{sweep_scope}, :source_uid => #{source}, :refresh_state_uuid => #{refresh_state_uuid}"
           info(msg)
         end
+
+        def availability_check(message, severity = :info)
+          log_with_prefix("Source#availability_check", message, severity)
+        end
+
+        def log_with_prefix(prefix, message, severity)
+          send(severity, "#{prefix} - #{message}") if respond_to?(severity)
+        end
       end
 
       class Logger < ManageIQ::Loggers::CloudWatch

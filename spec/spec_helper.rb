@@ -5,6 +5,9 @@ end
 
 require "bundler/setup"
 require "topological_inventory/providers/common"
+require "webmock/rspec"
+
+Dir["./spec/support/**/*.rb"].each {|f| require f}
 
 spec_path = File.dirname(__FILE__)
 Dir[File.join(spec_path, "support/**/*.rb")].each { |f| require f }
