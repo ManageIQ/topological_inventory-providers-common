@@ -17,13 +17,15 @@ module TopologicalInventory
         }.freeze
 
         LAST_CHECKED_AT_THRESHOLD = 5.minutes.freeze
+        AUTH_NOT_NECESSARY = "n/a".freeze
 
-        attr_accessor :params, :request_context, :source_id
+        attr_accessor :params, :request_context, :source_id, :account_number
 
         def initialize(params = {}, request_context = nil)
           self.params          = params
           self.request_context = request_context
           self.source_id       = params['source_id']
+          self.account_number  = params['external_tenant']
         end
 
         def availability_check
@@ -121,7 +123,11 @@ module TopologicalInventory
         end
 
         def authentication
-          @authentication ||= api_client.fetch_authentication(source_id, endpoint)
+          @authentication ||= if endpoint.receptor_node.present?
+                                AUTH_NOT_NECESSARY
+                              else
+                                api_client.fetch_authentication(source_id, endpoint)
+                              end
         rescue e
           logger.availability_check("Failed to fetch Authentication for Source #{source_id}: #{e.message}", :error)
         end
@@ -131,7 +137,7 @@ module TopologicalInventory
         end
 
         def identity
-          @identity ||= {"x-rh-identity" => Base64.strict_encode64({"identity" => {"account_number" => params["external_tenant"], "user" => {"is_org_admin" => true}}}.to_json)}
+          @identity ||= {"x-rh-identity" => Base64.strict_encode64({"identity" => {"account_number" => account_number, "user" => {"is_org_admin" => true}}}.to_json)}
         end
 
         def api_client
