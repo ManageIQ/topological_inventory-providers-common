@@ -11,6 +11,7 @@ RSpec.shared_examples "availability_check" do
   let(:headers) { {'Content-Type' => 'application/json'}.merge(identity) }
   let(:source_id) { '123' }
   let(:endpoint_id) { '234' }
+  let(:application_id) { '345' }
   let(:authentication_id) { '345' }
   let(:payload) do
     {
@@ -26,6 +27,8 @@ RSpec.shared_examples "availability_check" do
   let(:list_endpoint_authentications_response) { "{\"data\":[{\"authtype\":\"username_password\",\"id\":\"#{authentication_id}\",\"resource_id\":\"#{endpoint_id}\",\"resource_type\":\"Endpoint\",\"username\":\"admin\",\"tenant\":\"#{external_tenant}\"}]}" }
   let(:list_endpoint_authentications_response_empty) { "{\"data\":[]}" }
   let(:internal_api_authentication_response) { "{\"authtype\":\"username_password\",\"id\":\"#{authentication_id}\",\"resource_id\":\"#{endpoint_id}\",\"resource_type\":\"Endpoint\",\"username\":\"admin\",\"tenant\":\"#{external_tenant}\",\"password\":\"xxx\"}" }
+  let(:list_applications_response) { {:data => [{:id => "345", :availability_status => "available"}]}.to_json }
+  let(:list_applications_unavailable_response) { {:data => [{:id => "345", :availability_status => "unavailable"}]}.to_json }
 
   subject { described_class.new(payload["params"]) }
 
@@ -39,6 +42,7 @@ RSpec.shared_examples "availability_check" do
       stub_get(:endpoint, list_endpoints_response)
       stub_get(:authentication, list_endpoint_authentications_response)
       stub_get(:password, internal_api_authentication_response)
+      stub_get(:application, "[]")
 
       # PATCH
       source_patch_body   = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
@@ -61,6 +65,7 @@ RSpec.shared_examples "availability_check" do
       stub_get(:endpoint, list_endpoints_response)
       stub_get(:authentication, list_endpoint_authentications_response)
       stub_get(:password, internal_api_authentication_response)
+      stub_get(:application, "[]")
 
       # PATCH
       connection_error_message = "Some connection error"
@@ -82,6 +87,7 @@ RSpec.shared_examples "availability_check" do
     it "updates only Source to 'unavailable' status if Endpoint not found" do
       # GET
       stub_get(:endpoint, '')
+      stub_get(:application, "[]")
 
       # PATCH
       source_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
@@ -100,6 +106,7 @@ RSpec.shared_examples "availability_check" do
       # GET
       stub_get(:endpoint, list_endpoints_response)
       stub_get(:authentication, list_endpoint_authentications_response_empty)
+      stub_get(:application, "[]")
 
       # PATCH
       source_patch_body   = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
@@ -131,6 +138,49 @@ RSpec.shared_examples "availability_check" do
     end
   end
 
+  context "when there is an application" do
+    context "when it is available" do
+      it "updates the availability status to available" do
+        # GET
+        stub_get(:endpoint, "[]")
+        stub_get(:application, list_applications_response)
+        # PATCH
+        application_patch_body = {'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+        source_patch_body = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+
+        stub_patch(:source, source_patch_body)
+        stub_patch(:application, application_patch_body)
+
+        # Check
+        expect(subject).not_to receive(:connection_check)
+        subject.availability_check
+
+        assert_patch(:source, source_patch_body)
+        assert_patch(:application, application_patch_body)
+      end
+    end
+
+    context "when it is unavailable" do
+      it "updates the availability status to unavailable" do
+        # GET
+        stub_get(:endpoint, "[]")
+        stub_get(:application, list_applications_unavailable_response)
+        # PATCH
+        application_patch_body = {'last_checked_at' => subject.send(:check_time)}.to_json
+        source_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
+
+        stub_patch(:source, source_patch_body)
+        stub_patch(:application, application_patch_body)
+
+        # Check
+        expect(subject).not_to receive(:connection_check)
+        subject.availability_check
+
+        assert_patch(:source, source_patch_body)
+        assert_patch(:application, application_patch_body)
+      end
+    end
+  end
 
   def stub_get(object_type, response)
     case object_type
@@ -146,6 +196,10 @@ RSpec.shared_examples "availability_check" do
       stub_request(:get, "#{host_url}#{sources_internal_api_path}/authentications/#{authentication_id}?expose_encrypted_attribute%5B%5D=password")
         .with(:headers => headers)
         .to_return(:status => 200, :body => response, :headers => {})
+    when :application
+      stub_request(:get, "#{sources_api_url}/sources/#{source_id}/applications")
+        .with(:headers => headers)
+        .to_return(:status => 200, :body => response, :headers => {})
     end
   end
 
@@ -159,6 +213,10 @@ RSpec.shared_examples "availability_check" do
       stub_request(:patch, "#{sources_api_url}/endpoints/#{endpoint_id}")
         .with(:body => data, :headers => headers)
         .to_return(:status => 200, :body => "", :headers => {})
+    when :application
+      stub_request(:patch, "#{sources_api_url}/applications/#{application_id}")
+        .with(:body => data, :headers => headers)
+        .to_return(:status => 200, :body => "", :headers => {})
     end
   end
 
@@ -166,10 +224,13 @@ RSpec.shared_examples "availability_check" do
     case object_type
     when :source
       expect(WebMock).to have_requested(:patch, "#{sources_api_url}/sources/#{source_id}")
-                           .with(:body => data, :headers => headers).once
+        .with(:body => data, :headers => headers).once
     when :endpoint
       expect(WebMock).to have_requested(:patch, "#{sources_api_url}/endpoints/#{endpoint_id}")
-                           .with(:body => data, :headers => headers).once
+        .with(:body => data, :headers => headers).once
+    when :application
+      expect(WebMock).to have_requested(:patch, "#{sources_api_url}/applications/#{application_id}")
+        .with(:body => data, :headers => headers).once
     end
   end
 end
