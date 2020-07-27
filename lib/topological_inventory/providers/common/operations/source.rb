@@ -116,16 +116,14 @@ module TopologicalInventory
 
         def endpoint
           @endpoint ||= api_client.fetch_default_endpoint(source_id)
-        rescue StandardError => e
-          logger.availability_check("Failed to fetch Endpoint for Source #{source_id}, Endpoint #{endpoint}: #{e.message}", :error)
-          return
+        rescue e
+          logger.availability_check("Failed to fetch Endpoint for Source #{source_id}: #{e.message}", :error)
         end
 
         def authentication
           @authentication ||= api_client.fetch_authentication(source_id, endpoint)
-        rescue StandardError => e
-          logger.availability_check("Failed to fetch Authentication for Source #{source_id}, Endpoint #{endpoint}: #{e.message}", :error)
-          return
+        rescue e
+          logger.availability_check("Failed to fetch Authentication for Source #{source_id}: #{e.message}", :error)
         end
 
         def check_time
