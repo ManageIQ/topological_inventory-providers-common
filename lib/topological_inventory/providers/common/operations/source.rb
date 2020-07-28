@@ -12,8 +12,8 @@ module TopologicalInventory
         STATUS_AVAILABLE, STATUS_UNAVAILABLE = %w[available unavailable].freeze
 
         ERROR_MESSAGES = {
-          :authentication_not_found => "Authentication not found in Sources API",
-          :endpoint_not_found       => "Endpoint not found in Sources API",
+          :authentication_not_found          => "Authentication not found in Sources API",
+          :endpoint_or_application_not_found => "Endpoint or Application not found in Sources API",
         }.freeze
 
         LAST_CHECKED_AT_THRESHOLD = 5.minutes.freeze
@@ -33,7 +33,7 @@ module TopologicalInventory
 
           status, error_message = connection_status
 
-          update_source_and_endpoint(status, error_message)
+          update_source_and_subresources(status, error_message)
 
           logger.availability_check("Completed: Source #{source_id} is #{status}")
         end
@@ -57,20 +57,43 @@ module TopologicalInventory
         end
 
         def checked_recently?
-          return false if endpoint.nil?
+          checked_recently = if endpoint.present?
+                               endpoint.last_checked_at.present? && endpoint.last_checked_at >= LAST_CHECKED_AT_THRESHOLD.ago
+                             elsif application.present?
+                               application.last_checked_at.present? && application.last_checked_at >= LAST_CHECKED_AT_THRESHOLD.ago
+                             end
 
-          checked_recently = endpoint.last_checked_at.present? && endpoint.last_checked_at >= LAST_CHECKED_AT_THRESHOLD.ago
-          logger.availability_check("Skipping, last check at #{endpoint.last_checked_at} [Source ID: #{source_id}] ") if checked_recently
+          logger.availability_check("Skipping, last check at #{endpoint.last_checked_at || application.last_checked_at} [Source ID: #{source_id}] ") if checked_recently
 
           checked_recently
         end
 
         def connection_status
-          return [STATUS_UNAVAILABLE, ERROR_MESSAGES[:endpoint_not_found]] unless endpoint
-          return [STATUS_UNAVAILABLE, ERROR_MESSAGES[:authentication_not_found]] unless authentication
+          # we need either an endpoint or application to check the source.
+          return [STATUS_UNAVAILABLE, ERROR_MESSAGES[:endpoint_or_application_not_found]] unless endpoint || application
 
           check_time
+          if endpoint
+            endpoint_connection_check
+          elsif application
+            application_connection_check
+          end
+        end
+
+        def endpoint_connection_check
+          return [STATUS_UNAVAILABLE, ERROR_MESSAGES[:authentication_not_found]] unless authentication
+
+          # call down into the operations pod implementation of `Source#connection_check`
           connection_check
+        end
+
+        def application_connection_check
+          case application.availability_status
+          when "available"
+            [STATUS_AVAILABLE, nil]
+          when "unavailable"
+            [STATUS_UNAVAILABLE, "Application id #{application.id} unavailable"]
+          end
         end
 
         # @return [Array<String, String|nil] - STATUS_[UN]AVAILABLE, error message
@@ -78,11 +101,13 @@ module TopologicalInventory
           raise NotImplementedError, "#{__method__} must be implemented in a subclass"
         end
 
-        def update_source_and_endpoint(status, error_message = nil)
+        def update_source_and_subresources(status, error_message = nil)
           logger.availability_check("Updating source [#{source_id}] status [#{status}] message [#{error_message}]")
 
           update_source(status)
-          update_endpoint(status, error_message)
+
+          update_endpoint(status, error_message) if endpoint
+          update_application(status) if application
         end
 
         def update_source(status)
@@ -114,6 +139,16 @@ module TopologicalInventory
           logger.availability_check("Failed to update Endpoint(ID: #{endpoint.id}) - #{e.message}", :error)
         end
 
+        def update_application(status)
+          application_update = ::SourcesApiClient::Application.new
+          application_update.last_checked_at     = check_time
+          application_update.last_available_at   = check_time if status == STATUS_AVAILABLE
+
+          api_client.update_application(application.id, application_update)
+        rescue ::SourcesApiClient::ApiError => e
+          logger.availability_check("Failed to update Application id: #{application.id} - #{e.message}", :error)
+        end
+
         def endpoint
           @endpoint ||= api_client.fetch_default_endpoint(source_id)
         rescue e
@@ -124,6 +159,12 @@ module TopologicalInventory
           @authentication ||= api_client.fetch_authentication(source_id, endpoint)
         rescue e
           logger.availability_check("Failed to fetch Authentication for Source #{source_id}: #{e.message}", :error)
+        end
+
+        def application
+          @application ||= api_client.fetch_application(source_id)
+        rescue e
+          logger.availability_check("Failed to fetch Application for Source #{source_id}: #{e.message}", :error)
         end
 
         def check_time
