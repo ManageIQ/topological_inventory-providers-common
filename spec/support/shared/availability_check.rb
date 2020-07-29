@@ -42,7 +42,7 @@ RSpec.shared_examples "availability_check" do
       stub_get(:endpoint, list_endpoints_response)
       stub_get(:authentication, list_endpoint_authentications_response)
       stub_get(:password, internal_api_authentication_response)
-      stub_get(:application, "[]")
+      stub_not_found(:application)
 
       # PATCH
       source_patch_body   = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
@@ -65,7 +65,7 @@ RSpec.shared_examples "availability_check" do
       stub_get(:endpoint, list_endpoints_response)
       stub_get(:authentication, list_endpoint_authentications_response)
       stub_get(:password, internal_api_authentication_response)
-      stub_get(:application, "[]")
+      stub_not_found(:application)
 
       # PATCH
       connection_error_message = "Some connection error"
@@ -86,8 +86,8 @@ RSpec.shared_examples "availability_check" do
 
     it "updates only Source to 'unavailable' status if Endpoint not found" do
       # GET
-      stub_get(:endpoint, '')
-      stub_get(:application, "[]")
+      stub_not_found(:endpoint)
+      stub_not_found(:application)
 
       # PATCH
       source_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
@@ -106,7 +106,7 @@ RSpec.shared_examples "availability_check" do
       # GET
       stub_get(:endpoint, list_endpoints_response)
       stub_get(:authentication, list_endpoint_authentications_response_empty)
-      stub_get(:application, "[]")
+      stub_not_found(:application)
 
       # PATCH
       source_patch_body   = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
@@ -142,7 +142,7 @@ RSpec.shared_examples "availability_check" do
     context "when it is available" do
       it "updates the availability status to available" do
         # GET
-        stub_get(:endpoint, "[]")
+        stub_not_found(:endpoint)
         stub_get(:application, list_applications_response)
         # PATCH
         application_patch_body = {'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
@@ -163,7 +163,7 @@ RSpec.shared_examples "availability_check" do
     context "when it is unavailable" do
       it "updates the availability status to unavailable" do
         # GET
-        stub_get(:endpoint, "[]")
+        stub_not_found(:endpoint)
         stub_get(:application, list_applications_unavailable_response)
         # PATCH
         application_patch_body = {'last_checked_at' => subject.send(:check_time)}.to_json
@@ -200,6 +200,27 @@ RSpec.shared_examples "availability_check" do
       stub_request(:get, "#{sources_api_url}/sources/#{source_id}/applications")
         .with(:headers => headers)
         .to_return(:status => 200, :body => response, :headers => {})
+    end
+  end
+
+  def stub_not_found(object_type)
+    case object_type
+    when :endpoint
+      stub_request(:get, "#{sources_api_url}/sources/#{source_id}/endpoints")
+        .with(:headers => headers)
+        .to_return(:status => 404, :body => {}.to_json, :headers => {})
+    when :authentication
+      stub_request(:get, "#{sources_api_url}/endpoints/#{endpoint_id}/authentications")
+        .with(:headers => headers)
+        .to_return(:status => 404, :body => {}.to_json, :headers => {})
+    when :password
+      stub_request(:get, "#{host_url}#{sources_internal_api_path}/authentications/#{authentication_id}?expose_encrypted_attribute%5B%5D=password")
+        .with(:headers => headers)
+        .to_return(:status => 404, :body => {}.to_json, :headers => {})
+    when :application
+      stub_request(:get, "#{sources_api_url}/sources/#{source_id}/applications")
+        .with(:headers => headers)
+        .to_return(:status => 404, :body => {}.to_json, :headers => {})
     end
   end
 
