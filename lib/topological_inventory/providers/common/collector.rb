@@ -104,7 +104,8 @@ module TopologicalInventory
                            refresh_state_uuid = nil,
                            refresh_state_part_uuid = nil,
                            refresh_state_part_collected_at = nil,
-                           refresh_state_part_sent_at = Time.now.utc)
+                           refresh_state_part_sent_at = Time.now.utc,
+                           refresh_type = default_refresh_type)
           return 0 if collections.empty?
 
           SaveInventory::Saver.new(:client => ingress_api_client, :logger => logger).save(
@@ -116,7 +117,8 @@ module TopologicalInventory
               :refresh_state_uuid              => refresh_state_uuid,
               :refresh_state_part_uuid         => refresh_state_part_uuid,
               :refresh_state_part_collected_at => refresh_state_part_collected_at,
-              :refresh_state_part_sent_at      => refresh_state_part_sent_at
+              :refresh_state_part_sent_at      => refresh_state_part_sent_at,
+              :refresh_type                    => refresh_type
             )
           )
         rescue => e
@@ -134,7 +136,8 @@ module TopologicalInventory
                             total_parts,
                             sweep_scope,
                             refresh_state_started_at = nil,
-                            refresh_state_sent_at = Time.now.utc)
+                            refresh_state_sent_at = Time.now.utc,
+                            refresh_type = default_refresh_type)
           return if !total_parts || sweep_scope.empty?
 
           SaveInventory::Saver.new(:client => ingress_api_client, :logger => logger).save(
@@ -147,7 +150,8 @@ module TopologicalInventory
               :total_parts              => total_parts,
               :sweep_scope              => sweep_scope,
               :refresh_state_started_at => refresh_state_started_at,
-              :refresh_state_sent_at    => refresh_state_sent_at
+              :refresh_state_sent_at    => refresh_state_sent_at,
+              :refresh_type             => refresh_type
             )
           )
         rescue => e
@@ -163,6 +167,10 @@ module TopologicalInventory
 
         def schema_name
           "Default"
+        end
+
+        def default_refresh_type
+          'full-refresh'
         end
 
         def ingress_api_client
