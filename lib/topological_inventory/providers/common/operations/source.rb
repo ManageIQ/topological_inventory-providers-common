@@ -153,8 +153,9 @@ module TopologicalInventory
 
         def endpoint
           @endpoint ||= api_client.fetch_default_endpoint(source_id)
-        rescue e
+        rescue => e
           logger.availability_check("Failed to fetch Endpoint for Source #{source_id}: #{e.message}", :error)
+          nil
         end
 
         def authentication
@@ -163,14 +164,16 @@ module TopologicalInventory
                               else
                                 api_client.fetch_authentication(source_id, endpoint)
                               end
-        rescue e
+        rescue => e
           logger.availability_check("Failed to fetch Authentication for Source #{source_id}: #{e.message}", :error)
+          nil
         end
 
         def application
           @application ||= api_client.fetch_application(source_id)
-        rescue e
+        rescue => e
           logger.availability_check("Failed to fetch Application for Source #{source_id}: #{e.message}", :error)
+          nil
         end
 
         def check_time

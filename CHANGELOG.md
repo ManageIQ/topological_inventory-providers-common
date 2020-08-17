@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9]
+Added refresh-type to save and sweep inventory #45
+
+## [1.0.8] - 2020-08-12
+Add => to error messages that rubocop missed #44
+
 ## [1.0.7] - 2020-07-27
 Update operations/source model for receptor-enabled availability checks #36
 Add check for Application subresource under a Source during Availability check #40
@@ -43,8 +49,10 @@ manageiq-loggers to >= 0.4.2 #20
 ## [1.0.0] - 2020-03-19
 ### Initial release to rubygems.org
 
-[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.7...HEAD
-[1.0.6]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.6...v1.0.7
+[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.9...HEAD
+[1.0.9]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.8...v1.0.9
+[1.0.8]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.7...v1.0.8
+[1.0.7]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.3...v1.0.4
