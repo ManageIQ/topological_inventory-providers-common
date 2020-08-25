@@ -33,7 +33,10 @@ module TopologicalInventory
 
       class Logger < ManageIQ::Loggers::CloudWatch
         def self.new(*args)
-          super.tap { |logger| logger.extend(TopologicalInventory::Providers::Common::LoggingFunctions) }
+          super.tap do |logger|
+            logger.extend(TopologicalInventory::Providers::Common::LoggingFunctions)
+            logger.level = ENV['LOG_LEVEL'] if ENV['LOG_LEVEL']
+          end
         end
       end
 
