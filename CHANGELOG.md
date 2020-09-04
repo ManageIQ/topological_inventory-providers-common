@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.11]
+Make Collector Poll Time a parameter so we can tweak the collection interval #51
+
 ## [1.0.10]
 Add HealthCheck class for operations workers #48
 Set the LOG_LEVEL if present #50
@@ -53,7 +56,8 @@ manageiq-loggers to >= 0.4.2 #20
 ## [1.0.0] - 2020-03-19
 ### Initial release to rubygems.org
 
-[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.10...HEAD
+[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.11...HEAD
+[1.0.11]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.10...v1.0.11
 [1.0.10]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.9...v1.0.10
 [1.0.9]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.7...v1.0.8

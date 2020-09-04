@@ -5,8 +5,9 @@ module TopologicalInventory
     module Common
       class CollectorsPool
         SECRET_FILENAME = "credentials".freeze
+        COLLECTOR_POLL_TIME = ENV['COLLECTOR_POLL_TIME']&.to_i || 300
 
-        def initialize(config_name, metrics, collector_poll_time: 60, thread_pool_size: 2)
+        def initialize(config_name, metrics, collector_poll_time: COLLECTOR_POLL_TIME, thread_pool_size: 2)
           self.config_name         = config_name
           self.collector_status    = Concurrent::Map.new
           self.metrics             = metrics
