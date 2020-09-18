@@ -36,17 +36,17 @@ module TopologicalInventory
           else
             case severity.to_s.downcase
             when 'debug'
-              @level = DEBUG
+              @level = self.class::DEBUG
             when 'info'
-              @level = INFO
+              @level = self.class::INFO
             when 'warn'
-              @level = WARN
+              @level = self.class::WARN
             when 'error'
-              @level = ERROR
+              @level = self.class::ERROR
             when 'fatal'
-              @level = FATAL
+              @level = self.class::FATAL
             when 'unknown'
-              @level = UNKNOWN
+              @level = self.class::UNKNOWN
             else
               raise ArgumentError, "invalid log level: #{severity}"
             end
