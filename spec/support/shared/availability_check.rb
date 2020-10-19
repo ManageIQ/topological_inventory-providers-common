@@ -94,7 +94,7 @@ RSpec.shared_examples "availability_check" do
       stub_patch(:source, source_patch_body)
 
       # Check
-      api_client = subject.send(:api_client)
+      api_client = subject.send(:sources_api)
       expect(api_client).not_to receive(:update_endpoint)
 
       subject.availability_check
