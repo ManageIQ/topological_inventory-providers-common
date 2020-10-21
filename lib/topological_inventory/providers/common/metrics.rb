@@ -1,3 +1,4 @@
+require "benchmark"
 require "prometheus_exporter"
 require "prometheus_exporter/server"
 require "prometheus_exporter/client"
@@ -24,6 +25,15 @@ module TopologicalInventory
           @error_counter&.observe(1, :type => type.to_s)
         end
 
+        def record_operation(name, labels = {})
+          @status_counter&.observe(1, labels.merge(:name => name))
+        end
+
+        def record_operation_time(name, labels = {})
+          record_time(@duration_seconds, labels.merge(:name => name))
+        end
+
+        # Common method for gauge
         def record_gauge(metric, opt, value: nil, labels: {})
           case opt
           when :set then
@@ -33,6 +43,12 @@ module TopologicalInventory
           when :remove then
             metric&.decrement(labels)
           end
+        end
+
+        # Common method for histogram
+        def record_time(metric, labels = {})
+          time = Benchmark.realtime { yield }
+          metric&.observe(time, labels)
         end
 
         private
@@ -48,8 +64,13 @@ module TopologicalInventory
           PrometheusExporter::Instrumentation::Process.start
           PrometheusExporter::Metric::Base.default_prefix = default_prefix
 
+          @duration_seconds = PrometheusExporter::Metric::Histogram.new('duration_seconds', 'Duration of processed operation')
           @error_counter = PrometheusExporter::Metric::Counter.new("error", ERROR_COUNTER_MESSAGE)
-          @server.collector.register_metric(@error_counter)
+          @status_counter = PrometheusExporter::Metric::Counter.new('status_counter', 'number of processed operations')
+
+          [@duration_seconds, @error_counter, @status_counter].each do |metric|
+            @server.collector.register_metric(metric)
+          end
         end
 
         def default_prefix
