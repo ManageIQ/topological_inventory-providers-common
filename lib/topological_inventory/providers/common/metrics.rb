@@ -26,11 +26,11 @@ module TopologicalInventory
         end
 
         def record_operation(name, labels = {})
-          @status_counter&.observe(1, labels.merge(:name => name))
+          @status_counter&.observe(1, (labels || {}).merge(:name => name))
         end
 
-        def record_operation_time(name, labels = {})
-          record_time(@duration_seconds, labels.merge(:name => name))
+        def record_operation_time(name, labels = {}, &block)
+          record_time(@duration_seconds, (labels || {}).merge(:name => name), &block)
         end
 
         # Common method for gauge
@@ -47,8 +47,10 @@ module TopologicalInventory
 
         # Common method for histogram
         def record_time(metric, labels = {})
-          time = Benchmark.realtime { yield }
+          result = nil
+          time = Benchmark.realtime { result = yield }
           metric&.observe(time, labels)
+          result
         end
 
         private
