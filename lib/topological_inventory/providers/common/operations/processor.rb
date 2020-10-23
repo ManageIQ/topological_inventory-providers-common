@@ -1,5 +1,6 @@
 require "topological_inventory/providers/common/logging"
 require "topological_inventory/providers/common/mixins/statuses"
+require "topological_inventory/providers/common/mixins/topology_api"
 
 module TopologicalInventory
   module Providers
@@ -8,6 +9,7 @@ module TopologicalInventory
         class Processor
           include Logging
           include Mixins::Statuses
+          include Mixins::TopologyApi
 
           def self.process!(message, metrics)
             new(message, metrics).process
@@ -34,8 +36,12 @@ module TopologicalInventory
               end
             else
               logger.warn(status_log_msg("Not Implemented!"))
+              complete_task("not implemented") if params["task_id"]
               operation_status[:not_implemented]
             end
+          rescue StandardError, NotImplementedError => e
+            complete_task(e.message) if params["task_id"]
+            raise
           end
 
           private
@@ -52,6 +58,13 @@ module TopologicalInventory
             else
               yield
             end
+          end
+
+          def complete_task(msg, status = "error")
+            update_task(params["task_id"],
+                        :state   => "completed",
+                        :status  => status,
+                        :context => {:error => "#{model}##{method} - #{msg}"})
           end
 
           def status_log_msg(status = nil)
