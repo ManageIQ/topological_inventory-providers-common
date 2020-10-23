@@ -23,11 +23,14 @@ module TopologicalInventory
         end
 
         def availability_check(message, severity = :info)
-          log_with_prefix("Source#availability_check", message, severity)
+          send("#{severity}_ext", "Source#availability_check", message)
         end
 
-        def log_with_prefix(prefix, message, severity)
-          send(severity, "#{prefix} - #{message}") if respond_to?(severity)
+        %w[debug info warn error fatal].each do |severity|
+          define_method("#{severity}_ext".to_sym) do |prefix, message|
+            ext_message = [prefix, message].compact.join(' - ')
+            send(severity, ext_message)
+          end
         end
       end
 
