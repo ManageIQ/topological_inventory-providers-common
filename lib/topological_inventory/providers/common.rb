@@ -3,6 +3,7 @@ require "topological_inventory/providers/common/logging"
 require "topological_inventory/providers/common/operations/health_check"
 require "topological_inventory/providers/common/collectors_pool"
 require "topological_inventory/providers/common/collector"
+require "topological_inventory/providers/common/metrics"
 
 module TopologicalInventory
   module Providers

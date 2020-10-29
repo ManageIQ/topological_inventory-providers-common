@@ -14,6 +14,7 @@ module TopologicalInventory
           def endpoint
             @endpoint ||= sources_api.fetch_default_endpoint(source_id)
           rescue => e
+            metrics&.record_error(:sources_api)
             logger.error_ext(operation, "Failed to fetch Endpoint for Source #{source_id}: #{e.message}")
             nil
           end
@@ -25,6 +26,7 @@ module TopologicalInventory
                                   sources_api.fetch_authentication(source_id, endpoint)
                                 end
           rescue => e
+            metrics&.record_error(:sources_api)
             logger.error_ext(operation, "Failed to fetch Authentication for Source #{source_id}: #{e.message}")
             nil
           end
@@ -32,6 +34,7 @@ module TopologicalInventory
           def application
             @application ||= sources_api.fetch_application(source_id)
           rescue => e
+            metrics&.record_error(:sources_api)
             logger.error_ext(operation, "Failed to fetch Application for Source #{source_id}: #{e.message}")
             nil
           end

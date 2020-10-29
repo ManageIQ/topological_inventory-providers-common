@@ -1,6 +1,7 @@
 require "topological_inventory/providers/common/logging"
 require "active_support/core_ext/numeric/time"
 require "topological_inventory/providers/common/mixins/sources_api"
+require "topological_inventory/providers/common/mixins/statuses"
 require "topological_inventory/providers/common/mixins/x_rh_headers"
 
 module TopologicalInventory
@@ -11,6 +12,7 @@ module TopologicalInventory
           include Logging
           include Mixins::SourcesApi
           include Mixins::XRhHeaders
+          include Mixins::Statuses
 
           STATUS_AVAILABLE, STATUS_UNAVAILABLE = %w[available unavailable].freeze
 
@@ -24,7 +26,8 @@ module TopologicalInventory
 
           attr_accessor :identity, :operation, :params, :request_context, :source_id, :account_number
 
-          def initialize(params = {}, request_context = nil)
+          def initialize(params = {}, request_context = nil, metrics = nil)
+            self.metrics         = metrics
             self.operation       = 'Source'
             self.params          = params
             self.request_context = request_context
@@ -37,18 +40,22 @@ module TopologicalInventory
           def availability_check
             self.operation += '#availability_check'
 
-            return if params_missing?
+            return operation_status[:error] if params_missing?
 
-            return if checked_recently?
+            return operation_status[:skipped] if checked_recently?
 
             status, error_message = connection_status
 
             update_source_and_subresources(status, error_message)
 
             logger.availability_check("Completed: Source #{source_id} is #{status}")
+
+            operation_status[:success]
           end
 
           private
+
+          attr_accessor :metrics
 
           def required_params
             %w[source_id]
@@ -128,6 +135,7 @@ module TopologicalInventory
 
             sources_api.update_source(source_id, source)
           rescue ::SourcesApiClient::ApiError => e
+            metrics&.record_error(:sources_api)
             logger.availability_check("Failed to update Source id:#{source_id} - #{e.message}", :error)
           end
 
@@ -146,6 +154,7 @@ module TopologicalInventory
 
             sources_api.update_endpoint(endpoint.id, endpoint_update)
           rescue ::SourcesApiClient::ApiError => e
+            metrics&.record_error(:sources_api)
             logger.availability_check("Failed to update Endpoint(ID: #{endpoint.id}) - #{e.message}", :error)
           end
 
@@ -156,6 +165,7 @@ module TopologicalInventory
 
             sources_api.update_application(application.id, application_update)
           rescue ::SourcesApiClient::ApiError => e
+            metrics&.record_error(:sources_api)
             logger.availability_check("Failed to update Application id: #{application.id} - #{e.message}", :error)
           end
 
