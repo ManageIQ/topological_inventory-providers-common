@@ -7,8 +7,12 @@ RSpec.shared_examples "availability_check" do
   let(:sources_api_url) { "#{host_url}#{sources_api_path}" }
 
   let(:external_tenant) { '11001' }
+  let(:kafka_client) { TopologicalInventory::Providers::Common::MessagingClient.default.client }
   let(:identity) { {'x-rh-identity' => Base64.strict_encode64({'identity' => {'account_number' => external_tenant, 'user' => {'is_org_admin' => true}}}.to_json)} }
   let(:headers) { {'Content-Type' => 'application/json'}.merge(identity) }
+  let(:status_available) { described_class::STATUS_AVAILABLE }
+  let(:status_unavailable) { described_class::STATUS_UNAVAILABLE }
+  let(:error_message) { 'error_message' }
   let(:source_id) { '123' }
   let(:endpoint_id) { '234' }
   let(:application_id) { '345' }
@@ -32,101 +36,208 @@ RSpec.shared_examples "availability_check" do
 
   subject { described_class.new(payload["params"]) }
 
+  def kafka_message(resource_type, resource_id, status, error_message = nil)
+    res = {
+      :service => described_class::SERVICE_NAME,
+      :message => described_class::EVENT_AVAILABILITY_STATUS,
+      :payload => {
+        :resource_type => resource_type,
+        :resource_id   => resource_id,
+        :status        => status
+      }
+    }
+    res[:payload][:error] = error_message if error_message
+    res[:payload] = res[:payload].to_json
+    res
+  end
+
+  before do
+    allow(subject).to receive(:messaging_client).and_return(kafka_client)
+  end
+
   context "when not checked recently" do
     before do
       allow(subject).to receive(:checked_recently?).and_return(false)
     end
 
-    it "updates Source and Endpoint when available" do
-      # GET
-      stub_get(:endpoint, list_endpoints_response)
-      stub_get(:authentication, list_endpoint_authentications_response)
-      stub_get(:password, internal_api_authentication_response)
-      stub_not_found(:application)
+    context 'kafka' do
+      it 'updates Source and Endpoint when available' do
+        stub_get(:endpoint, list_endpoints_response)
+        stub_get(:application, list_applications_response)
 
-      # PATCH
-      source_patch_body   = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
-      endpoint_patch_body = {'availability_status' => described_class::STATUS_AVAILABLE, 'availability_status_error' => '', 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+        expect(subject).to receive(:connection_status).and_return([status_available, ''])
 
-      stub_patch(:source, source_patch_body)
-      stub_patch(:endpoint, endpoint_patch_body)
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Source", source_id, status_available)
+        )
 
-      # Check ---
-      expect(subject).to receive(:connection_check).and_return([described_class::STATUS_AVAILABLE, nil])
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Endpoint", endpoint_id, status_available, '')
+        )
 
-      subject.availability_check
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Application", application_id, status_available)
+        )
 
-      assert_patch(:source, source_patch_body)
-      assert_patch(:endpoint, endpoint_patch_body)
+        subject.availability_check
+      end
+
+
+      it "updates Source and Endpoint when unavailable" do
+        stub_get(:endpoint, list_endpoints_response)
+        stub_get(:application, list_applications_response)
+
+        expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
+
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Source", source_id, status_unavailable)
+        )
+
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Endpoint", endpoint_id, status_unavailable, error_message)
+        )
+
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Application", application_id, status_unavailable)
+        )
+
+        subject.availability_check
+      end
+
+      it "updates only Source to 'unavailable' status if Endpoint not found" do
+        stub_not_found(:endpoint)
+        stub_not_found(:application)
+
+        expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
+
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Source", source_id, status_unavailable)
+        )
+
+        expect(subject.logger).to receive(:availability_check).with("Updating source [#{source_id}] status [#{status_unavailable}] message [#{error_message}]")
+        expect(subject.logger).to receive(:availability_check).with("Completed: Source #{source_id} is #{status_unavailable}")
+
+        subject.availability_check
+      end
+
+      it "updates Source and Endpoint to 'unavailable' if Authentication not found" do
+        stub_get(:endpoint, list_endpoints_response)
+        stub_not_found(:application)
+
+        expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
+
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Source", source_id, status_unavailable)
+        )
+
+        expect(kafka_client).to receive(:publish_message).with(
+          kafka_message("Endpoint", endpoint_id, status_unavailable, error_message)
+        )
+
+        expect(subject.logger).to receive(:availability_check).with("Updating source [#{source_id}] status [#{status_unavailable}] message [#{error_message}]")
+        expect(subject.logger).to receive(:availability_check).with("Completed: Source #{source_id} is #{status_unavailable}")
+
+        subject.availability_check
+      end
     end
 
-    it "updates Source and Endpoint when unavailable" do
-      # GET
-      stub_get(:endpoint, list_endpoints_response)
-      stub_get(:authentication, list_endpoint_authentications_response)
-      stub_get(:password, internal_api_authentication_response)
-      stub_not_found(:application)
+    context 'sources_api' do
+      before do
+        subject.send(:updates_via_kafka=, false)
+      end
 
-      # PATCH
-      connection_error_message = "Some connection error"
-      source_patch_body        = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
-      endpoint_patch_body      = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'availability_status_error' => connection_error_message, 'last_checked_at' => subject.send(:check_time)}.to_json
+      it "updates Source and Endpoint when available" do
+        # GET
+        stub_get(:endpoint, list_endpoints_response)
+        stub_get(:authentication, list_endpoint_authentications_response)
+        stub_get(:password, internal_api_authentication_response)
+        stub_not_found(:application)
 
-      stub_patch(:source, source_patch_body)
-      stub_patch(:endpoint, endpoint_patch_body)
+        # PATCH
+        source_patch_body   = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+        endpoint_patch_body = {'availability_status' => described_class::STATUS_AVAILABLE, 'availability_status_error' => '', 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
 
-      # Check ---
-      expect(subject).to receive(:connection_check).and_return([described_class::STATUS_UNAVAILABLE, connection_error_message])
+        stub_patch(:source, source_patch_body)
+        stub_patch(:endpoint, endpoint_patch_body)
 
-      subject.availability_check
+        # Check ---
+        expect(subject).to receive(:connection_check).and_return([described_class::STATUS_AVAILABLE, nil])
 
-      assert_patch(:source, source_patch_body)
-      assert_patch(:endpoint, endpoint_patch_body)
-    end
+        subject.availability_check
 
-    it "updates only Source to 'unavailable' status if Endpoint not found" do
-      # GET
-      stub_not_found(:endpoint)
-      stub_not_found(:application)
+        assert_patch(:source, source_patch_body)
+        assert_patch(:endpoint, endpoint_patch_body)
+      end
 
-      # PATCH
-      source_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
-      stub_patch(:source, source_patch_body)
+      it "updates Source and Endpoint when unavailable" do
+        # GET
+        stub_get(:endpoint, list_endpoints_response)
+        stub_get(:authentication, list_endpoint_authentications_response)
+        stub_get(:password, internal_api_authentication_response)
+        stub_not_found(:application)
 
-      # Check
-      api_client = subject.send(:sources_api)
-      expect(api_client).not_to receive(:update_endpoint)
+        # PATCH
+        connection_error_message = "Some connection error"
+        source_patch_body        = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
+        endpoint_patch_body      = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'availability_status_error' => connection_error_message, 'last_checked_at' => subject.send(:check_time)}.to_json
 
-      subject.availability_check
+        stub_patch(:source, source_patch_body)
+        stub_patch(:endpoint, endpoint_patch_body)
 
-      assert_patch(:source, source_patch_body)
-    end
+        # Check ---
+        expect(subject).to receive(:connection_check).and_return([described_class::STATUS_UNAVAILABLE, connection_error_message])
 
-    it "updates Source and Endpoint to 'unavailable' if Authentication not found" do
-      # GET
-      stub_get(:endpoint, list_endpoints_response)
-      stub_get(:authentication, list_endpoint_authentications_response_empty)
-      stub_not_found(:application)
+        subject.availability_check
 
-      # PATCH
-      source_patch_body   = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
-      endpoint_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'availability_status_error' => described_class::ERROR_MESSAGES[:authentication_not_found], 'last_checked_at' => subject.send(:check_time)}.to_json
+        assert_patch(:source, source_patch_body)
+        assert_patch(:endpoint, endpoint_patch_body)
+      end
 
-      stub_patch(:source, source_patch_body)
-      stub_patch(:endpoint, endpoint_patch_body)
+      it "updates only Source to 'unavailable' status if Endpoint not found" do
+        # GET
+        stub_not_found(:endpoint)
+        stub_not_found(:application)
 
-      # Check
-      expect(subject).not_to receive(:connection_check)
-      subject.availability_check
+        # PATCH
+        source_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
+        stub_patch(:source, source_patch_body)
 
-      assert_patch(:source, source_patch_body)
-      assert_patch(:endpoint, endpoint_patch_body)
+        # Check
+        api_client = subject.send(:sources_api)
+        expect(api_client).not_to receive(:update_endpoint)
+
+        subject.availability_check
+
+        assert_patch(:source, source_patch_body)
+      end
+
+      it "updates Source and Endpoint to 'unavailable' if Authentication not found" do
+        # GET
+        stub_get(:endpoint, list_endpoints_response)
+        stub_get(:authentication, list_endpoint_authentications_response_empty)
+        stub_not_found(:application)
+
+        # PATCH
+        source_patch_body   = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
+        endpoint_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'availability_status_error' => described_class::ERROR_MESSAGES[:authentication_not_found], 'last_checked_at' => subject.send(:check_time)}.to_json
+
+        stub_patch(:source, source_patch_body)
+        stub_patch(:endpoint, endpoint_patch_body)
+
+        # Check
+        expect(subject).not_to receive(:connection_check)
+        subject.availability_check
+
+        assert_patch(:source, source_patch_body)
+        assert_patch(:endpoint, endpoint_patch_body)
+      end
     end
   end
 
   context "when checked recently" do
     before do
       allow(subject).to receive(:checked_recently?).and_return(true)
+      subject.send(:updates_via_kafka=, false)
     end
 
     it "doesn't do connection check" do
@@ -140,44 +251,97 @@ RSpec.shared_examples "availability_check" do
 
   context "when there is an application" do
     context "when it is available" do
-      it "updates the availability status to available" do
-        # GET
-        stub_not_found(:endpoint)
-        stub_get(:application, list_applications_response)
-        # PATCH
-        application_patch_body = {'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
-        source_patch_body = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+      context 'kafka' do
+        it "updates the availability status to available" do
+          stub_not_found(:endpoint)
+          stub_get(:application, list_applications_response)
 
-        stub_patch(:source, source_patch_body)
-        stub_patch(:application, application_patch_body)
+          expect(subject).to receive(:connection_status).and_return([status_available, ''])
 
-        # Check
-        expect(subject).not_to receive(:connection_check)
-        subject.availability_check
+          expect(kafka_client).to receive(:publish_message).with(
+            kafka_message("Source", source_id, status_available)
+          )
 
-        assert_patch(:source, source_patch_body)
-        assert_patch(:application, application_patch_body)
+          expect(kafka_client).to receive(:publish_message).with(
+            kafka_message("Application", application_id, status_available)
+          )
+
+          expect(subject.logger).to receive(:availability_check).with("Updating source [#{source_id}] status [#{status_available}] message []")
+          expect(subject.logger).to receive(:availability_check).with("Completed: Source #{source_id} is #{status_available}")
+
+          subject.availability_check
+        end
+      end
+
+      context 'sources_api' do
+        before do
+          subject.send(:updates_via_kafka=, false)
+        end
+
+        it "updates the availability status to available" do
+          # GET
+          stub_not_found(:endpoint)
+          stub_get(:application, list_applications_response)
+          # PATCH
+          application_patch_body = {'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+          source_patch_body = {'availability_status' => described_class::STATUS_AVAILABLE, 'last_available_at' => subject.send(:check_time), 'last_checked_at' => subject.send(:check_time)}.to_json
+
+          stub_patch(:source, source_patch_body)
+          stub_patch(:application, application_patch_body)
+
+          # Check
+          expect(subject).not_to receive(:connection_check)
+          subject.availability_check
+
+          assert_patch(:source, source_patch_body)
+          assert_patch(:application, application_patch_body)
+        end
       end
     end
 
     context "when it is unavailable" do
-      it "updates the availability status to unavailable" do
-        # GET
-        stub_not_found(:endpoint)
-        stub_get(:application, list_applications_unavailable_response)
-        # PATCH
-        application_patch_body = {'last_checked_at' => subject.send(:check_time)}.to_json
-        source_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
+      context 'kafka' do
+        it "updates the availability status to unavailable" do
+          stub_not_found(:endpoint)
+          stub_get(:application, list_applications_unavailable_response)
 
-        stub_patch(:source, source_patch_body)
-        stub_patch(:application, application_patch_body)
+          expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
 
-        # Check
-        expect(subject).not_to receive(:connection_check)
-        subject.availability_check
+          expect(kafka_client).to receive(:publish_message).with(
+            kafka_message("Source", source_id, status_unavailable)
+          )
 
-        assert_patch(:source, source_patch_body)
-        assert_patch(:application, application_patch_body)
+          expect(kafka_client).to receive(:publish_message).with(
+            kafka_message("Application", application_id, status_unavailable)
+          )
+
+          subject.availability_check
+        end
+      end
+
+      context 'sources_api' do
+        before do
+          subject.send(:updates_via_kafka=, false)
+        end
+
+        it "updates the availability status to unavailable" do
+          # GET
+          stub_not_found(:endpoint)
+          stub_get(:application, list_applications_unavailable_response)
+          # PATCH
+          application_patch_body = {'last_checked_at' => subject.send(:check_time)}.to_json
+          source_patch_body = {'availability_status' => described_class::STATUS_UNAVAILABLE, 'last_checked_at' => subject.send(:check_time)}.to_json
+
+          stub_patch(:source, source_patch_body)
+          stub_patch(:application, application_patch_body)
+
+          # Check
+          expect(subject).not_to receive(:connection_check)
+          subject.availability_check
+
+          assert_patch(:source, source_patch_body)
+          assert_patch(:application, application_patch_body)
+        end
       end
     end
   end

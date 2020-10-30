@@ -27,6 +27,8 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'config', '~> 1.7', '>= 1.7.2'
   spec.add_runtime_dependency 'json', '~> 2.3'
   spec.add_runtime_dependency "manageiq-loggers", ">= 0.4.2"
+  spec.add_runtime_dependency "manageiq-messaging", "~> 1.0.0"
+  spec.add_runtime_dependency "more_core_extensions"
   spec.add_runtime_dependency "prometheus_exporter", "~> 0.4.17"
   spec.add_runtime_dependency "sources-api-client", "~> 3.0"
   spec.add_runtime_dependency "topological_inventory-api-client", "~> 3.0", ">= 3.0.1"
