@@ -30,7 +30,7 @@ module TopologicalInventory
           attr_accessor :identity, :operation, :params, :request_context, :source_id, :account_number
 
           def initialize(params = {}, request_context = nil, metrics = nil)
-            self.metrics         = metrics
+            self.metrics           = metrics
             self.operation         = 'Source'
             self.params            = params
             self.request_context   = request_context
