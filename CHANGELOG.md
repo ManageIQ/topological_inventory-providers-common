@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0]
+## [2.1.0]
+Add Availability checks for sources via Kafka #54
+Common Metrics exporter #57
+Rubocop rules from insights-api-common + yamllint #59
+
+## [2.0.0] - 2020-10-20
 Operations/API clients refactoring
 
 ## [1.0.12] - 2020-10-01
@@ -62,7 +67,8 @@ manageiq-loggers to >= 0.4.2 #20
 ## [1.0.0] - 2020-03-19
 ### Initial release to rubygems.org
 
-[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.12...v2.0.0
 [1.0.12]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.11...v1.0.12
 [1.0.11]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.10...v1.0.11
