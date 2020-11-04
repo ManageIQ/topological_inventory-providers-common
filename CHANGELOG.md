@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.1.0]
+## [2.1.1] - 2020-11-04
+MessagingClient and Source fix #61
+Fix availability_check in app check #62
+
+## [2.1.0] - 2020-11-02
 Add Availability checks for sources via Kafka #54
 Common Metrics exporter #57
 Rubocop rules from insights-api-common + yamllint #59
@@ -12,7 +16,7 @@ Rubocop rules from insights-api-common + yamllint #59
 ## [2.0.0] - 2020-10-20
 Operations/API clients refactoring
 
-## [1.0.12] - 2020-10-01
+## [1.0.12] - 2020-10-05
 Add Operations Async Worker class #55
 
 ## [1.0.11] - 2020-09-04
