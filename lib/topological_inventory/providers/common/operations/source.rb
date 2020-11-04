@@ -83,7 +83,7 @@ module TopologicalInventory
                                  application.last_checked_at.present? && application.last_checked_at >= LAST_CHECKED_AT_THRESHOLD.ago
                                end
 
-            logger.availability_check("Skipping, last check at #{endpoint.last_checked_at || application.last_checked_at} [Source ID: #{source_id}] ") if checked_recently
+            logger.availability_check("Skipping, last check at #{endpoint&.last_checked_at || application&.last_checked_at} [Source ID: #{source_id}] ") if checked_recently
 
             checked_recently
           end
