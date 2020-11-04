@@ -11,8 +11,8 @@ module TopologicalInventory
         attr_accessor :queue_port
 
         def initialize
-          @queue_host = ENV['QUEUE_HOST'] || 'localhost'
-          @queue_port = (ENV['QUEUE_PORT'] || 9092).to_i
+          self.queue_host = ENV['QUEUE_HOST'] || 'localhost'
+          self.queue_port = (ENV['QUEUE_PORT'] || 9092).to_i
         end
 
         def self.default
@@ -28,7 +28,7 @@ module TopologicalInventory
         end
 
         cache_with_timeout(:client) do
-          ManageIQ::Messaging::Client.open(:protocol => :Kafka, :host => @queue_host, :port => @queue_port)
+          ManageIQ::Messaging::Client.open(:protocol => :Kafka, :host => default.queue_host, :port => default.queue_port)
         end
 
         def client

@@ -214,7 +214,7 @@ module TopologicalInventory
               :payload => payload.to_json
             )
           rescue => err
-            logger.availability_check("Failed to update Application id: #{application.id} - #{err.message}", :error)
+            logger.availability_check("Failed to update #{payload[:resource_type]} id: #{payload[:resource_id]} - #{err.message}", :error)
           ensure
             messaging_client&.close
           end
