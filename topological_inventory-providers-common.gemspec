@@ -26,16 +26,20 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'activesupport', '~> 5.2.4.3'
   spec.add_runtime_dependency 'config', '~> 1.7', '>= 1.7.2'
   spec.add_runtime_dependency 'json', '~> 2.3'
-  spec.add_runtime_dependency "manageiq-loggers", ">= 0.4.2"
-  spec.add_runtime_dependency "sources-api-client", "~> 3.0"
-  spec.add_runtime_dependency "topological_inventory-api-client", "~> 3.0", ">= 3.0.1"
-  spec.add_runtime_dependency "topological_inventory-ingress_api-client", "~> 1.0", ">= 1.0.3"
+  spec.add_runtime_dependency 'manageiq-loggers', '>= 0.4.2'
+  spec.add_runtime_dependency 'manageiq-messaging', '~> 1.0.0'
+  spec.add_runtime_dependency 'more_core_extensions'
+  spec.add_runtime_dependency 'prometheus_exporter', '~> 0.4.17'
+  spec.add_runtime_dependency 'sources-api-client', '~> 3.0'
+  spec.add_runtime_dependency 'topological_inventory-api-client', '~> 3.0', '>= 3.0.1'
+  spec.add_runtime_dependency 'topological_inventory-ingress_api-client', '~> 1.0', '>= 1.0.3'
 
-  spec.add_development_dependency "bundler", "~> 2.0"
-  spec.add_development_dependency "rake", ">= 12.3.3"
-  spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency 'rubocop', '~>0.69.0'
-  spec.add_development_dependency 'rubocop-performance', '~>1.3'
-  spec.add_development_dependency "simplecov", "~> 0.17.1"
+  spec.add_development_dependency 'bundler', '~> 2.0'
+  spec.add_development_dependency 'rake', '>= 12.3.3'
+  spec.add_development_dependency 'rspec', '~> 3.0'
+  spec.add_development_dependency 'rubocop', '~> 1.0.0'
+  spec.add_development_dependency 'rubocop-performance', '~> 1.8'
+  spec.add_development_dependency 'rubocop-rails', '~> 2.8'
+  spec.add_development_dependency 'simplecov', '~> 0.17.1'
   spec.add_development_dependency 'webmock'
 end
