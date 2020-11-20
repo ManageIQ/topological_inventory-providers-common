@@ -1,4 +1,5 @@
 require "topological_inventory/providers/common/logging"
+require "topological_inventory/providers/common/mixins/statuses"
 require "topological_inventory/providers/common/operations/health_check"
 
 module TopologicalInventory
@@ -7,10 +8,12 @@ module TopologicalInventory
       module Operations
         class AsyncWorker
           include Logging
+          include TopologicalInventory::Providers::Common::Mixins::Statuses
 
-          def initialize(processor, queue = nil)
+          def initialize(processor, queue: nil, metrics: nil)
             @processor = processor
-            @queue = queue || Queue.new
+            @queue     = queue || Queue.new
+            @metrics   = metrics
           end
 
           def start
@@ -37,15 +40,17 @@ module TopologicalInventory
 
           private
 
-          attr_reader :thread, :queue, :processor
+          attr_reader :thread, :queue, :processor, :metrics
 
-          def process_message(msg)
-            processor.process!(msg)
+          def process_message(message)
+            result = processor.process!(message, metrics)
+            metrics&.record_operation(message.message, :status => result)
           rescue => err
-            model, method = msg.message.to_s.split(".")
+            model, method = message.message.to_s.split(".")
             logger.error("#{model}##{method}: async worker failure: #{err.cause}\n#{err}\n#{err.backtrace.join("\n")}")
+            metrics&.record_operation(message.message, :status => operation_status[:error])
           ensure
-            msg.ack
+            message.ack
             TopologicalInventory::Providers::Common::Operations::HealthCheck.touch_file
             logger.debug("Operations::AsyncWorker queue length: #{queue.length}") if queue.length >= 20 && queue.length % 5 == 0
           end
