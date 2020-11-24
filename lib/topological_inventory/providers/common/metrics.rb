@@ -67,7 +67,7 @@ module TopologicalInventory
           PrometheusExporter::Metric::Base.default_prefix = default_prefix
 
           @duration_seconds = PrometheusExporter::Metric::Histogram.new('duration_seconds', 'Duration of processed operation')
-          @error_counter = PrometheusExporter::Metric::Counter.new("error", ERROR_COUNTER_MESSAGE)
+          @error_counter = PrometheusExporter::Metric::Counter.new('errors_total', ERROR_COUNTER_MESSAGE)
           @status_counter = PrometheusExporter::Metric::Counter.new('status_counter', 'number of processed operations')
 
           [@duration_seconds, @error_counter, @status_counter].each do |metric|
