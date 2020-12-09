@@ -208,9 +208,9 @@ module TopologicalInventory
           end
 
           def availability_status_message(payload)
-            messaging_client.publish_message(
+            messaging_client.publish_topic(
               :service => SERVICE_NAME,
-              :message => EVENT_AVAILABILITY_STATUS,
+              :event   => EVENT_AVAILABILITY_STATUS,
               :payload => payload.to_json
             )
           rescue => err
