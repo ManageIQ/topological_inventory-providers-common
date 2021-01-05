@@ -39,7 +39,7 @@ RSpec.shared_examples "availability_check" do
   def kafka_message(resource_type, resource_id, status, error_message = nil)
     res = {
       :service => described_class::SERVICE_NAME,
-      :message => described_class::EVENT_AVAILABILITY_STATUS,
+      :event   => described_class::EVENT_AVAILABILITY_STATUS,
       :payload => {
         :resource_type => resource_type,
         :resource_id   => resource_id,
@@ -67,15 +67,15 @@ RSpec.shared_examples "availability_check" do
 
         expect(subject).to receive(:connection_status).and_return([status_available, ''])
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Source", source_id, status_available)
         )
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Endpoint", endpoint_id, status_available, '')
         )
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Application", application_id, status_available)
         )
 
@@ -89,15 +89,15 @@ RSpec.shared_examples "availability_check" do
 
         expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Source", source_id, status_unavailable)
         )
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Endpoint", endpoint_id, status_unavailable, error_message)
         )
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Application", application_id, status_unavailable)
         )
 
@@ -110,7 +110,7 @@ RSpec.shared_examples "availability_check" do
 
         expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Source", source_id, status_unavailable)
         )
 
@@ -126,11 +126,11 @@ RSpec.shared_examples "availability_check" do
 
         expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Source", source_id, status_unavailable)
         )
 
-        expect(kafka_client).to receive(:publish_message).with(
+        expect(kafka_client).to receive(:publish_topic).with(
           kafka_message("Endpoint", endpoint_id, status_unavailable, error_message)
         )
 
@@ -258,11 +258,11 @@ RSpec.shared_examples "availability_check" do
 
           expect(subject).to receive(:connection_status).and_return([status_available, ''])
 
-          expect(kafka_client).to receive(:publish_message).with(
+          expect(kafka_client).to receive(:publish_topic).with(
             kafka_message("Source", source_id, status_available)
           )
 
-          expect(kafka_client).to receive(:publish_message).with(
+          expect(kafka_client).to receive(:publish_topic).with(
             kafka_message("Application", application_id, status_available)
           )
 
@@ -307,11 +307,11 @@ RSpec.shared_examples "availability_check" do
 
           expect(subject).to receive(:connection_status).and_return([status_unavailable, error_message])
 
-          expect(kafka_client).to receive(:publish_message).with(
+          expect(kafka_client).to receive(:publish_topic).with(
             kafka_message("Source", source_id, status_unavailable)
           )
 
-          expect(kafka_client).to receive(:publish_message).with(
+          expect(kafka_client).to receive(:publish_topic).with(
             kafka_message("Application", application_id, status_unavailable)
           )
 

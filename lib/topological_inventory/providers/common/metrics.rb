@@ -3,18 +3,25 @@ require "prometheus_exporter"
 require "prometheus_exporter/server"
 require "prometheus_exporter/client"
 require "prometheus_exporter/instrumentation"
+require "topological_inventory/providers/common/mixins/statuses"
 
 module TopologicalInventory
   module Providers
     module Common
       class Metrics
+        include TopologicalInventory::Providers::Common::Mixins::Statuses
+
         ERROR_COUNTER_MESSAGE = "total number of errors".freeze
+        ERROR_TYPES = %i[general].freeze
+        OPERATIONS  = %w[].freeze
 
         def initialize(port = 9394)
           return if port == 0
 
           configure_server(port)
           configure_metrics
+
+          init_counters
         end
 
         def stop_server
@@ -23,6 +30,10 @@ module TopologicalInventory
 
         def record_error(type = :general)
           @error_counter&.observe(1, :type => type.to_s)
+        end
+
+        def record_refresh_timing(labels = {}, &block)
+          record_time(@refresh_timer, labels, &block)
         end
 
         def record_operation(name, labels = {})
@@ -55,6 +66,19 @@ module TopologicalInventory
 
         private
 
+        # Set all values to 0 (otherwise the counter is undefined)
+        def init_counters
+          self.class::ERROR_TYPES.each do |err_type|
+            @error_counter&.observe(0, :type => err_type)
+          end
+
+          self.class::OPERATIONS.each do |op|
+            operation_status.each_key do |status|
+              @status_counter&.observe(0, :name => op, :status => status.to_s)
+            end
+          end
+        end
+
         def configure_server(port)
           @server = PrometheusExporter::Server::WebServer.new(:port => port)
           @server.start
@@ -67,10 +91,11 @@ module TopologicalInventory
           PrometheusExporter::Metric::Base.default_prefix = default_prefix
 
           @duration_seconds = PrometheusExporter::Metric::Histogram.new('duration_seconds', 'Duration of processed operation')
-          @error_counter = PrometheusExporter::Metric::Counter.new("error", ERROR_COUNTER_MESSAGE)
+          @refresh_timer = PrometheusExporter::Metric::Histogram.new('refresh_time', 'Duration of full refresh')
+          @error_counter = PrometheusExporter::Metric::Counter.new('errors_total', ERROR_COUNTER_MESSAGE)
           @status_counter = PrometheusExporter::Metric::Counter.new('status_counter', 'number of processed operations')
 
-          [@duration_seconds, @error_counter, @status_counter].each do |metric|
+          [@duration_seconds, @refresh_timer, @error_counter, @status_counter].each do |metric|
             @server.collector.register_metric(metric)
           end
         end

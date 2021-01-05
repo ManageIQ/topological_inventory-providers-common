@@ -30,7 +30,7 @@ module TopologicalInventory
           attr_accessor :identity, :operation, :params, :request_context, :source_id, :account_number
 
           def initialize(params = {}, request_context = nil, metrics = nil)
-            self.metrics         = metrics
+            self.metrics           = metrics
             self.operation         = 'Source'
             self.params            = params
             self.request_context   = request_context
@@ -208,9 +208,9 @@ module TopologicalInventory
           end
 
           def availability_status_message(payload)
-            messaging_client.publish_message(
+            messaging_client.publish_topic(
               :service => SERVICE_NAME,
-              :message => EVENT_AVAILABILITY_STATUS,
+              :event   => EVENT_AVAILABILITY_STATUS,
               :payload => payload.to_json
             )
           rescue => err
