@@ -44,6 +44,9 @@ RSpec.shared_examples "availability_check" do
         :resource_type => resource_type,
         :resource_id   => resource_id,
         :status        => status
+      },
+      :headers => {
+        "x-rh-identity" => "eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6IjExMDAxIiwidXNlciI6eyJpc19vcmdfYWRtaW4iOnRydWV9fX0="
       }
     }
     res[:payload][:error] = error_message if error_message
