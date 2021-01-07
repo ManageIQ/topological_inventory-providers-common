@@ -211,7 +211,8 @@ module TopologicalInventory
             messaging_client.publish_topic(
               :service => SERVICE_NAME,
               :event   => EVENT_AVAILABILITY_STATUS,
-              :payload => payload.to_json
+              :payload => payload.to_json,
+              :headers => identity
             )
           rescue => err
             logger.availability_check("Failed to update #{payload[:resource_type]} id: #{payload[:resource_id]} - #{err.message}", :error)
