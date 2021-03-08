@@ -1,7 +1,7 @@
 module TopologicalInventory
   module Providers
     module Common
-      VERSION = "2.1.5".freeze
+      VERSION = "3.0.0".freeze
     end
   end
 end
