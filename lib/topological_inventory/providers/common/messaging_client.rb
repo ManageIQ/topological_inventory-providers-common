@@ -1,5 +1,6 @@
 require "more_core_extensions/core_ext/module/cache_with_timeout"
 require "manageiq-messaging"
+require "topological_inventory/providers/common/clowder_config"
 
 module TopologicalInventory
   module Providers
@@ -11,8 +12,8 @@ module TopologicalInventory
         attr_accessor :queue_port
 
         def initialize
-          self.queue_host = ENV['QUEUE_HOST'] || 'localhost'
-          self.queue_port = (ENV['QUEUE_PORT'] || 9092).to_i
+          self.queue_host = TopologicalInventory::Providers::Common::ClowderConfig.instance["kafkaHost"]
+          self.queue_port = TopologicalInventory::Providers::Common::ClowderConfig.instance["kafkaPort"].to_i
         end
 
         def self.default

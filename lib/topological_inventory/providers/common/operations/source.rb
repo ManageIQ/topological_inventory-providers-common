@@ -17,7 +17,7 @@ module TopologicalInventory
 
           STATUS_AVAILABLE, STATUS_UNAVAILABLE = %w[available unavailable].freeze
           EVENT_AVAILABILITY_STATUS            = "availability_status".freeze
-          SERVICE_NAME                         = "platform.sources.status".freeze
+          KAFKA_TOPIC_NAME                     = "platform.sources.status".freeze
 
           ERROR_MESSAGES = {
             :authentication_not_found          => "Authentication not found in Sources API",
@@ -209,7 +209,7 @@ module TopologicalInventory
 
           def availability_status_message(payload)
             messaging_client.publish_topic(
-              :service => SERVICE_NAME,
+              :service => TopologicalInventory::Providers::Common::ClowderConfig.kafka_topic(KAFKA_TOPIC_NAME),
               :event   => EVENT_AVAILABILITY_STATUS,
               :payload => payload.to_json,
               :headers => identity
