@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [3.0.0] - 2021-03-08
+Clowder migration #75 
+
 ## [2.1.5] - 2021-01-07
 Include x-rh-id header in Kafka Availability-Status message #73
 
@@ -84,7 +87,9 @@ manageiq-loggers to >= 0.4.2 #20
 ## [1.0.0] - 2020-03-19
 ### Initial release to rubygems.org
 
-[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.5...HEAD
+[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.5...v3.0.0
+[2.1.5]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.4...v2.1.5
 [2.1.5]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.4...v2.1.5
 [2.1.4]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.3...v2.1.4
 [2.1.3]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.2...v2.1.3

@@ -38,7 +38,7 @@ RSpec.shared_examples "availability_check" do
 
   def kafka_message(resource_type, resource_id, status, error_message = nil)
     res = {
-      :service => described_class::SERVICE_NAME,
+      :service => described_class::KAFKA_TOPIC_NAME,
       :event   => described_class::EVENT_AVAILABILITY_STATUS,
       :payload => {
         :resource_type => resource_type,
