@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency 'activesupport', '~> 5.2.4.3'
+  spec.add_runtime_dependency 'activesupport', '~> 5.2', '>= 5.2.4.3'
   spec.add_runtime_dependency 'clowder-common-ruby', '~> 0.2.1'
   spec.add_runtime_dependency 'config', '~> 1.7', '>= 1.7.2'
   spec.add_runtime_dependency 'json', '~> 2.3'
