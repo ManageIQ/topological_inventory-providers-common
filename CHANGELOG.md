@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [3.0.1] - 2021-04-30
+More generic activesupport dependency #77
+
 ## [3.0.0] - 2021-03-08
 Clowder migration #75 
 
@@ -87,16 +90,17 @@ manageiq-loggers to >= 0.4.2 #20
 ## [1.0.0] - 2020-03-19
 ### Initial release to rubygems.org
 
-[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v3.0.0...HEAD
-[3.0.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.5...v3.0.0
-[2.1.5]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.4...v2.1.5
-[2.1.5]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.4...v2.1.5
-[2.1.4]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.3...v2.1.4
-[2.1.3]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.2...v2.1.3
-[2.1.2]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.1...v2.1.2
-[2.1.1]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.0...v2.1.1
-[2.1.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.12...v2.0.0
+[Unreleased]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v3.0.1.freeze...HEAD
+[3.0.1]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v3.0.0.freeze...v3.0.1.freeze
+[3.0.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.5.freeze...v3.0.0.freeze
+[2.1.5]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.4.freeze...v2.1.5.freeze
+[2.1.5]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.4.freeze...v2.1.5.freeze
+[2.1.4]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.3.freeze...v2.1.4.freeze
+[2.1.3]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.2.freeze...v2.1.3.freeze
+[2.1.2]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.1.freeze...v2.1.2.freeze
+[2.1.1]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.1.0.freeze...v2.1.1.freeze
+[2.1.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v2.0.0.freeze...v2.1.0.freeze
+[2.0.0]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.12...v2.0.0.freeze
 [1.0.12]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.11...v1.0.12
 [1.0.11]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.10...v1.0.11
 [1.0.10]: https://github.com/RedHatInsights/topological_inventory-providers-common/compare/v1.0.9...v1.0.10
