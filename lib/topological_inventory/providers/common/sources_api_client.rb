@@ -15,8 +15,25 @@ module TopologicalInventory
         end
 
         def init_default_api
-          default_headers.merge!(identity) if identity.present?
+          # TODO: remove this once PSK is set up everywhere.
+          if identity.present?
+            if psk
+              parsed_identity = JSON.parse(Base64.decode64(identity.fetch('x-rh-identity')))
+
+              default_headers.merge!(
+                "x-rh-sources-psk"            => psk,
+                "x-rh-sources-account-number" => parsed_identity['identity']['account_number']
+              )
+            else
+              default_headers.merge!(identity)
+            end
+          end
+
           ::SourcesApiClient::DefaultApi.new(self)
+        end
+
+        def psk
+          @psk ||= ENV.fetch("SOURCES_PSK", nil)
         end
 
         def fetch_default_endpoint(source_id)
