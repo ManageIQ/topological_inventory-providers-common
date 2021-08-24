@@ -9,7 +9,8 @@ RSpec.shared_examples "availability_check" do
   let(:external_tenant) { '11001' }
   let(:kafka_client) { TopologicalInventory::Providers::Common::MessagingClient.default.client }
   let(:identity) { {'x-rh-identity' => Base64.strict_encode64({'identity' => {'account_number' => external_tenant, 'user' => {'is_org_admin' => true}}}.to_json)} }
-  let(:headers) { {'Content-Type' => 'application/json'}.merge(identity) }
+  let(:identity_with_psk) { { "x-rh-sources-account-number" => external_tenant, "x-rh-sources-psk" => '1234' } }
+  let(:headers) { ENV['SOURCES_PSK'] ? {'Content-Type' => 'application/json'}.merge(identity_with_psk) : {'Content-Type' => 'application/json'}.merge(identity)  }
   let(:status_available) { described_class::STATUS_AVAILABLE }
   let(:status_unavailable) { described_class::STATUS_UNAVAILABLE }
   let(:error_message) { 'error_message' }
